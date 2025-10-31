@@ -1,3 +1,1 @@
-id rather not since my phone keyboard is
-glitchiiiiiiiiiiiiiiiiiiiiiiinnnnnnnnnnnnnggggg
-oooooouuuuuutt
+ok my phone hone one ne e i f 😭😭😭😭 icant typ
