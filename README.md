@@ -1,1 +1,3 @@
-ok my phone hone one ne e i f 😭😭😭😭 icant typ
+dev-xomxo is da best
+past preview i you could actually do anything in zombo.com
+i bet this website will become popular
