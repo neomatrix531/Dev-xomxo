@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>My Homepage — Embedded Sites</title>
+  <style>
+    :root{--accent:#2563eb;--bg:#0f172a;--card:#0b1220;--muted:#9ca3af}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{background:linear-gradient(180deg,#071133 0%, #0b1220 100%);color:#e6eef8;display:flex;flex-direction:column}
+    header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;gap:12px;flex-wrap:wrap}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#06b6d4);display:flex;align-items:center;justify-content:center;font-weight:700}
+    h1{font-size:16px;margin:0}
+    nav{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+    button, a.link-btn, input[type=text]{background:transparent;border:1px solid rgba(255,255,255,0.08);color:inherit;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px;transition:all .25s ease}
+    button.active{background:rgba(255,255,255,0.08);box-shadow:0 4px 14px rgba(2,6,23,0.6)}
+    button:hover, input[type=text]:hover{border-color:rgba(255,255,255,0.18)}
+    button span.icon{margin-right:6px}
+    input[type=text]{min-width:220px;outline:none}
+    input[type=text]:focus{border-color:var(--accent);box-shadow:0 0 8px rgba(37,99,235,0.6)}
+    .actions{display:flex;gap:8px;align-items:center}
+
+    main{flex:1;display:flex;flex-direction:column;padding:12px}
+    .frame-wrap{flex:1;border-radius:12px;overflow:hidden;box-shadow:0 10px 40px rgba(2,6,23,0.6);background:#01030a;border:1px solid rgba(255,255,255,0.03);position:relative}
+    iframe{width:100%;height:100%;border:0;display:block}
+
+    .notice{position:absolute;left:12px;top:12px;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);font-size:13px;color:var(--muted)}
+    .notice.hidden{display:none}
+
+    footer{padding:10px 18px;font-size:13px;color:var(--muted);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap}
+
+    @media (max-width:720px){.brand h1{display:none}.notice{font-size:12px}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">HP</div>
+      <div>
+        <h1>My Homepage</h1>
+        <div style="font-size:12px;color:var(--muted)">Quick access to embedded pages</div>
+      </div>
+    </div>
+
+    <nav>
+      <button id="btn-upto" class="active" data-src="https://www.uptoplay.net/playonline/"><span class="icon">🎮</span>UptoPlay</button>
+      <button id="btn-peng" data-src="https://penguinmod.com"><span class="icon">🐧</span>PenguinMod</button>
+      <button id="btn-gx" data-src="https://kabez.itch.io/scratch-loader-gx"><span class="icon">⚙️</span>Scratch Loader GX</button>
+      <input id="customUrl" type="text" placeholder="Enter website URL…" />
+    </nav>
+
+    <div class="actions">
+      <a id="open-new" class="link-btn" href="https://www.uptoplay.net/playonline/" target="_blank" rel="noopener">Open in new tab</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="frame-wrap">
+      <div id="notice" class="notice">Loading… if the site refuses to embed you'll be shown a link.</div>
+      <iframe id="mainFrame" src="https://www.uptoplay.net/playonline/" title="Embedded content"></iframe>
+    </div>
+  </main>
+
+  <footer>
+    <div>Built with ❤️ — iframe embed demo</div>
+    <div id="status" style="color:var(--muted)">Status: checking...</div>
+  </footer>
+
+  <script>
+    const btnU = document.getElementById('btn-upto');
+    const btnP = document.getElementById('btn-peng');
+    const btnG = document.getElementById('btn-gx');
+    const inputCustom = document.getElementById('customUrl');
+    const iframe = document.getElementById('mainFrame');
+    const notice = document.getElementById('notice');
+    const openNew = document.getElementById('open-new');
+    const status = document.getElementById('status');
+
+    function setActive(btn){[btnU,btnP,btnG,inputCustom].forEach(b=>b.classList.remove('active'));btn.classList.add('active')}
+
+    function setSrc(url, fromCustom=false){
+      if(!url.startsWith('http')) url = 'https://' + url;
+      notice.textContent = 'Loading ' + url + ' …';
+      notice.classList.remove('hidden');
+      iframe.src = url;
+      openNew.href = url;
+      status.textContent = 'Status: loading';
+      if(fromCustom){
+        localStorage.setItem('lastCustomURL', url);
+      }
+
+      const to = setTimeout(()=>{
+        status.textContent = 'Status: still loading — embedding may be blocked';
+      }, 2000);
+
+      iframe.onload = function(){
+        clearTimeout(to);
+        try{
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          if(iframeDoc && iframeDoc.body && iframeDoc.body.childElementCount > 0){
+            notice.classList.add('hidden');
+            status.textContent = 'Status: embedded successfully';
+          } else {
+            notice.innerHTML = 'This site might block embedding. <a href="'+iframe.src+'" target="_blank" rel="noopener">Open in new tab</a>';
+            status.textContent = 'Status: embedding blocked or empty';
+          }
+        }catch(e){
+          notice.innerHTML = 'This site blocks embedding. <a href="'+iframe.src+'" target="_blank" rel="noopener">Open in new tab</a>';
+          status.textContent = 'Status: embedding blocked (X-Frame-Options/CSP)';
+        }
+      };
+
+      setTimeout(()=>{
+        if(status.textContent.startsWith('Status: loading') || status.textContent.includes('still loading')){
+          notice.innerHTML = 'Unable to embed — <a href="'+iframe.src+'" target="_blank" rel="noopener">open in new tab</a>';
+          status.textContent = 'Status: embedding may be blocked';
+        }
+      }, 4000);
+    }
+
+    btnU.addEventListener('click', ()=>{setActive(btnU); setSrc(btnU.dataset.src)});
+    btnP.addEventListener('click', ()=>{setActive(btnP); setSrc(btnP.dataset.src)});
+    btnG.addEventListener('click', ()=>{setActive(btnG); setSrc(btnG.dataset.src)});
+
+    inputCustom.addEventListener('keydown', e=>{
+      if(e.key==='Enter' && inputCustom.value.trim()!==''){
+        setActive(inputCustom);
+        setSrc(inputCustom.value.trim(), true);
+      }
+    });
+
+    // Load last custom site if available
+    const last = localStorage.getItem('lastCustomURL');
+    if(last){
+      inputCustom.value = last;
+    }
+
+    setSrc(iframe.src);
+  </script>
+</body>
+</html>
