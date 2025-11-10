@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>My Homepage — Embedded Sites</title>
+  <style>
+    :root{--accent:#2563eb;--bg:#0f172a;--card:#0b1220;--muted:#9ca3af}
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{background:linear-gradient(180deg,#071133 0%, #0b1220 100%);color:#e6eef8;display:flex;flex-direction:column}
+    header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;gap:12px}
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,var(--accent),#06b6d4);display:flex;align-items:center;justify-content:center;font-weight:700}
+    h1{font-size:16px;margin:0}
+    nav{display:flex;gap:8px}
+    button, a.link-btn{background:transparent;border:1px solid rgba(255,255,255,0.08);color:inherit;padding:8px 12px;border-radius:8px;cursor:pointer;font-size:14px}
+    button.active{background:rgba(255,255,255,0.06);box-shadow:0 4px 14px rgba(2,6,23,0.6)}
+    .actions{display:flex;gap:8px;align-items:center}
+
+    /* big iframe area */
+    main{flex:1;display:flex;flex-direction:column;padding:12px}
+    .frame-wrap{flex:1;border-radius:12px;overflow:hidden;box-shadow:0 10px 40px rgba(2,6,23,0.6);background:#01030a;border:1px solid rgba(255,255,255,0.03);position:relative}
+    iframe{width:100%;height:100%;border:0;display:block}
+
+    /* notice bar */
+    .notice{position:absolute;left:12px;top:12px;background:rgba(0,0,0,0.55);backdrop-filter:blur(6px);padding:8px 12px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);font-size:13px;color:var(--muted)}
+    .notice.hidden{display:none}
+
+    footer{padding:10px 18px;font-size:13px;color:var(--muted);display:flex;justify-content:space-between;align-items:center}
+
+    @media (max-width:720px){.brand h1{display:none}.notice{font-size:12px}}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <div class="logo">HP</div>
+      <div>
+        <h1>My Homepage</h1>
+        <div style="font-size:12px;color:var(--muted)">Quick access to embedded pages</div>
+      </div>
+    </div>
+
+    <nav>
+      <button id="btn-upto" class="active" data-src="https://www.uptoplay.net/playonline/">UptoPlay</button>
+      <button id="btn-peng" data-src="https://penguinmod.com">PenguinMod</button>
+    </nav>
+
+    <div class="actions">
+      <a id="open-new" class="link-btn" href="https://www.uptoplay.net/playonline/" target="_blank" rel="noopener">Open in new tab</a>
+    </div>
+  </header>
+
+  <main>
+    <div class="frame-wrap">
+      <div id="notice" class="notice">Loading… if the site refuses to embed you'll be shown a link.</div>
+      <iframe id="mainFrame" src="https://www.uptoplay.net/playonline/" title="Embedded content"></iframe>
+    </div>
+  </main>
+
+  <footer>
+    <div>Built with ❤️ — iframe embed demo</div>
+    <div id="status" style="color:var(--muted)">Status: checking...</div>
+  </footer>
+
+  <script>
+    const btnU = document.getElementById('btn-upto');
+    const btnP = document.getElementById('btn-peng');
+    const iframe = document.getElementById('mainFrame');
+    const notice = document.getElementById('notice');
+    const openNew = document.getElementById('open-new');
+    const status = document.getElementById('status');
+
+    function setActive(btn){[btnU,btnP].forEach(b=>b.classList.remove('active'));btn.classList.add('active')}
+
+    function setSrc(url){
+      notice.textContent = 'Loading ' + url + ' …';
+      notice.classList.remove('hidden');
+      iframe.src = url;
+      openNew.href = url;
+      status.textContent = 'Status: loading';
+
+      // After a short time, try to detect whether the site allowed embedding.
+      // Note: many sites disallow embedding via X-Frame-Options or CSP — that will show an empty/blocked iframe.
+      // We can't reliably inspect cross-origin iframe contents, so we use a heuristic: onload + try/catch access.
+      const to = setTimeout(()=>{
+        status.textContent = 'Status: still loading — embedding may be blocked';
+      }, 2000);
+
+      iframe.onload = function(){
+        clearTimeout(to);
+        // Try reading inside the iframe to detect cross-origin blocking
+        try{
+          const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+          // If we can access body and it has content, assume embedded OK
+          if(iframeDoc && iframeDoc.body && iframeDoc.body.childElementCount > 0){
+            notice.classList.add('hidden');
+            status.textContent = 'Status: embedded successfully';
+          } else {
+            // Might be blocked but still fired onload — show manual link
+            notice.innerHTML = 'This site might block embedding. <a href="'+iframe.src+'" target="_blank" rel="noopener">Open in new tab</a>';
+            status.textContent = 'Status: embedding blocked or empty';
+          }
+        }catch(e){
+          // Cross-origin access error -> embedding blocked by server
+          notice.innerHTML = 'This site blocks embedding. <a href="'+iframe.src+'" target="_blank" rel="noopener">Open in new tab</a>';
+          status.textContent = 'Status: embedding blocked (X-Frame-Options/CSP)';
+        }
+      };
+
+      // Fallback: if iframe fails to load at all (error), show link after 3s
+      setTimeout(()=>{
+        if(status.textContent.startsWith('Status: loading') || status.textContent.includes('still loading')){
+          notice.innerHTML = 'Unable to embed — <a href="'+iframe.src+'" target="_blank" rel="noopener">open in new tab</a>';
+          status.textContent = 'Status: embedding may be blocked';
+        }
+      }, 4000);
+    }
+
+    btnU.addEventListener('click', ()=>{setActive(btnU); setSrc(btnU.dataset.src)});
+    btnP.addEventListener('click', ()=>{setActive(btnP); setSrc(btnP.dataset.src)});
+
+    // Initial check
+    setSrc(iframe.src);
+  </script>
+</body>
+</html>
