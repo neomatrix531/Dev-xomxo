@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Multiplayer CloudLink Game</title>
+
+<style>
+body { font-family: Arial; background:#111; color:white; margin:0; }
+#chatBox { height:40vh; overflow-y:auto; padding:10px; background:#222; }
+.msg { margin:5px 0; }
+input, button { padding:8px; margin:3px 0; width:100%; font-size:16px; }
+#game { height:40vh; background:#000; border:2px solid #444; position:relative; }
+.player { width:20px; height:20px; background:red; position:absolute; border-radius:5px; }
+</style>
+
+<!-- CloudLink Omega -->
+<script src="https://cloudlink.omega/script/latest.js"></script>
+</head>
+<body>
+
+<h2>Multiplayer Game + Chat</h2>
+
+<div id="chatBox"></div>
+
+<input id="msgInput" placeholder="Message or roleplay action...">
+<button onclick="sendMsg()">Send</button>
+
+<input id="imgInput" placeholder="Paste image link 🔗">
+<button onclick="sendImage()">Send Image</button>
+
+<input id="fileInput" placeholder="Paste file link 📂">
+<button onclick="sendFile()">Send File</button>
+
+<div id="game"></div>
+
+<script>
+/* ---------------------------
+   CloudLink Realtime Setup
+----------------------------*/
+
+const room = "public_lobby_game_1";  
+const USER = "User" + Math.floor(Math.random()*9999);
+
+// connect to CloudLink
+const cl = new CloudLink();
+cl.connect();
+
+cl.on("connected", () => {
+    cl.join(room);
+    sendSystem(`${USER} joined the game.`);
+});
+
+// display messages
+function addChat(text) {
+    let div = document.createElement("div");
+    div.className = "msg";
+    div.innerHTML = text;
+    document.getElementById("chatBox").appendChild(div);
+    div.scrollIntoView();
+}
+
+/* ------ Sending messages ------ */
+
+function sendMsg() {
+    let msg = document.getElementById("msgInput").value;
+    if (!msg) return;
+
+    cl.send(room, { type: "chat", user: USER, text: msg });
+
+    document.getElementById("msgInput").value = "";
+}
+
+function sendSystem(text) {
+    cl.send(room, { type: "system", text });
+}
+
+function sendImage() {
+    let url = document.getElementById("imgInput").value;
+    if (!url) return;
+
+    cl.send(room, { type:"image", user:USER, url });
+    document.getElementById("imgInput").value="";
+}
+
+function sendFile() {
+    let url = document.getElementById("fileInput").value;
+    if (!url) return;
+
+    cl.send(room, { type:"file", user:USER, url });
+    document.getElementById("fileInput").value="";
+}
+
+/* ------ Receiving messages ------ */
+
+cl.on("message", (data) => {
+    if (!data.data) return;
+    let msg = data.data;
+
+    if (msg.type === "chat") {
+        addChat(`<b>${msg.user}:</b> ${msg.text}`);
+    }
+    if (msg.type === "system") {
+        addChat(`<i>${msg.text}</i>`);
+    }
+    if (msg.type === "image") {
+        addChat(`<b>${msg.user} sent an image:</b><br><img src="${msg.url}" style="width:80%">`);
+    }
+    if (msg.type === "file") {
+        addChat(`<b>${msg.user} sent a file:</b> <a href="${msg.url}" target="_blank">Download</a>`);
+    }
+    if (msg.type === "move") {
+        updatePlayer(msg.user, msg.x, msg.y);
+    }
+});
+
+/* -----------------------------
+     Simple Shared Game Board
+------------------------------ */
+
+const board = document.getElementById("game");
+let players = {};
+
+// create player dot
+function updatePlayer(u, x, y) {
+    if (!players[u]) {
+        let p = document.createElement("div");
+        p.className = "player";
+        board.appendChild(p);
+        players[u] = p;
+    }
+    players[u].style.left = x + "px";
+    players[u].style.top = y + "px";
+}
+
+// movement controls (touch)
+board.addEventListener("touchmove", (e) => {
+    let rect = board.getBoundingClientRect();
+    let x = e.touches[0].clientX - rect.left - 10;
+    let y = e.touches[0].clientY - rect.top - 10;
+
+    // broadcast position
+    cl.send(room, { type:"move", user:USER, x, y });
+
+    updatePlayer(USER, x, y);
+});
+</script>
+
+</body>
+</html>
