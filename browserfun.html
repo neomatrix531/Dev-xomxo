@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mini Chrome Browser</title>
+  <style>
+    body { margin: 0; font-family: 'Segoe UI', sans-serif; background: #f1f3f4; }
+    .toolbar, .tabs, .bookmarks, .history {
+      padding: 8px; background: #e0e0e0; box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+    .toolbar input { width: 70%; padding: 8px; border-radius: 4px; border: none; font-size: 16px; }
+    .toolbar button { padding: 8px; margin-left: 4px; background: #4285f4; color: white; border: none; border-radius: 4px; }
+    .tabs button, .bookmarks button, .history button {
+      margin: 2px; padding: 4px 8px; font-size: 14px; border: none; border-radius: 4px; background: #d2d2d2;
+    }
+    iframe { width: 100%; height: calc(100vh - 200px); border: none; }
+  </style>
+</head>
+<body>
+  <div class="toolbar">
+    <input type="text" id="urlInput" placeholder="Enter URL">
+    <button onclick="loadPage()">Go</button>
+    <button onclick="addBookmark()">☆</button>
+  </div>
+
+  <div class="tabs" id="tabs"></div>
+  <div class="bookmarks" id="bookmarks"><strong>Bookmarks:</strong></div>
+  <div class="history" id="history"><strong>History:</strong></div>
+
+  <iframe id="browserFrame"></iframe>
+
+  <script>
+    let historyList = [];
+    let bookmarks = [];
+    let tabs = [];
+
+    function loadPage(url = null) {
+      const input = document.getElementById('urlInput');
+      const rawUrl = url || input.value.trim();
+      const fullUrl = rawUrl.startsWith('http') ? rawUrl : 'https://' + rawUrl;
+      const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(fullUrl)}`;
+      document.getElementById('browserFrame').src = proxyUrl;
+
+      input.value = rawUrl;
+      historyList.push(rawUrl);
+      updateHistory();
+      addTab(rawUrl);
+    }
+
+    function addTab(url) {
+      tabs.push(url);
+      const tabBar = document.getElementById('tabs');
+      tabBar.innerHTML = '';
+      tabs.forEach((t, i) => {
+        const btn = document.createElement('button');
+        btn.textContent = `Tab ${i+1}`;
+        btn.onclick = () => loadPage(t);
+        tabBar.appendChild(btn);
+      });
+    }
+
+    function updateHistory() {
+      const historyDiv = document.getElementById('history');
+      historyDiv.innerHTML = '<strong>History:</strong>';
+      historyList.slice(-5).reverse().forEach(h => {
+        const btn = document.createElement('button');
+        btn.textContent = h;
+        btn.onclick = () => loadPage(h);
+        historyDiv.appendChild(btn);
+      });
+    }
+
+    function addBookmark() {
+      const url = document.getElementById('urlInput').value.trim();
+      if (!bookmarks.includes(url)) bookmarks.push(url);
+      const bmDiv = document.getElementById('bookmarks');
+      bmDiv.innerHTML = '<strong>Bookmarks:</strong>';
+      bookmarks.forEach(b => {
+        const btn = document.createElement('button');
+        btn.textContent = b;
+        btn.onclick = () => loadPage(b);
+        bmDiv.appendChild(btn);
+      });
+    }
+  </script>
+</body>
+</html>
