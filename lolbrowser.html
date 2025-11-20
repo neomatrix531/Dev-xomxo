@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Tabbed Mini Browser via corsproxy.io</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    :root { color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+    header { display: grid; grid-template-columns: auto 1fr auto; gap: 8px; padding: 10px; border-bottom: 1px solid #ccc; }
+    #controls { display: flex; gap: 8px; align-items: center; }
+    #tabs { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+    #urlBar { display: flex; gap: 8px; align-items: center; }
+    input[type="text"] { flex: 1; padding: 8px; font-size: 16px; }
+    button { padding: 8px 12px; font-size: 14px; cursor: pointer; }
+    .tab-btn { border: 1px solid #aaa; background: #f6f6f6; border-radius: 6px; }
+    .tab-btn.active { background: #dfe7ff; border-color: #6b8cff; }
+    #status { font-size: 12px; opacity: 0.7; }
+    #workspace { width: 100vw; height: calc(100vh - 140px); position: relative; }
+    iframe { width: 100%; height: 100%; border: 0; display: none; }
+    iframe.active { display: block; }
+    #bookmarksBar { display: flex; gap: 6px; padding: 8px 10px; border-top: 1px solid #ccc; overflow-x: auto; }
+    .bookmark-btn { border: 1px solid #aaa; background: #fff; border-radius: 6px; padding: 6px 10px; white-space: nowrap; max-width: 280px; overflow: hidden; text-overflow: ellipsis; }
+    .spacer { height: 1px; background: transparent; }
+  </style>
+</head>
+<body>
+  <header>
+    <div id="controls">
+      <button id="newTabBtn" title="New Tab">➕ Tab</button>
+      <button id="closeTabBtn" title="Close Tab">✖ Close</button>
+      <button id="bookmarkBtn" title="Bookmark current page">🔖 Bookmark</button>
+      <span id="status"></span>
+    </div>
+    <div id="tabs" aria-label="Tabs"></div>
+    <div id="urlBar">
+      <button id="backBtn" title="Back">⟵</button>
+      <button id="forwardBtn" title="Forward">⟶</button>
+      <input id="urlInput" type="text" placeholder="Enter a URL (e.g., https://example.com)" />
+      <button id="goBtn">Go</button>
+    </div>
+  </header>
+
+  <div id="workspace" aria-label="Workspace"></div>
+  <div class="spacer"></div>
+  <div id="bookmarksBar" aria-label="Bookmarks"></div>
+
+  <script>
+    // Config
+    const PROXY = "https://corsproxy.io/?";
+
+    // UI refs
+    const workspace = document.getElementById("workspace");
+    const tabsBar = document.getElementById("tabs");
+    const urlInput = document.getElementById("urlInput");
+    const statusEl = document.getElementById("status");
+    const backBtn = document.getElementById("backBtn");
+    const forwardBtn = document.getElementById("forwardBtn");
+    const goBtn = document.getElementById("goBtn");
+    const newTabBtn = document.getElementById("newTabBtn");
+    const closeTabBtn = document.getElementById("closeTabBtn");
+    const bookmarkBtn = document.getElementById("bookmarkBtn");
+    const bookmarksBar = document.getElementById("bookmarksBar");
+
+    // State
+    const tabs = []; // {id, iframe, history:[], index:number, title:string}
+    let activeTabId = null;
+
+    // Utility
+    function setStatus(msg) { statusEl.textContent = msg || ""; }
+    function escapeHtml(str) { const div = document.createElement('div'); div.textContent = str; return div.innerHTML; }
+    function activeTab() { return tabs.find(t => t.id === activeTabId) || null; }
+    function tabTitleFromHTML(html) {
+      try {
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const t = (doc.querySelector("title")?.textContent || "").trim();
+        return t || "Untitled";
+      } catch { return "Untitled"; }
+    }
+
+    // Tabs
+    function createTab(initialUrl = "https://example.com") {
+      const id = crypto.randomUUID?.() || String(Date.now() + Math.random());
+      const iframe = document.createElement("iframe");
+      iframe.sandbox = "allow-forms allow-scripts";
+      iframe.className = "active"; // will adjust in switch
+      iframe.dataset.id = id;
+
+      const tab = { id, iframe, history: [], index: -1, title: "New Tab" };
+      tabs.push(tab);
+      workspace.appendChild(iframe);
+
+      const btn = document.createElement("button");
+      btn.className = "tab-btn active";
+      btn.textContent = tab.title;
+      btn.dataset.id = id;
+      btn.onclick = () => switchTab(id);
+      tabsBar.appendChild(btn);
+
+      switchTab(id);
+      navigate(tab, initialUrl, true);
+    }
+
+    function switchTab(id) {
+      activeTabId = id;
+      for (const t of tabs) {
+        const isActive = t.id === id;
+        t.iframe.classList.toggle("active", isActive);
+        t.iframe.style.display = isActive ? "block" : "none";
+        const btn = tabsBar.querySelector(`button.tab-btn[data-id="${t.id}"]`);
+        if (btn) btn.classList.toggle("active", isActive);
+      }
+      const t = activeTab();
+      urlInput.value = t && t.history[t.index] ? t.history[t.index] : "";
+      updateNavButtons();
+    }
+
+    function closeActiveTab() {
+      const t = activeTab();
+      if (!t) return;
+      // Remove iframe
+      t.iframe.remove();
+      // Remove tab button
+      const btn = tabsBar.querySelector(`button.tab-btn[data-id="${t.id}"]`);
+      if (btn) btn.remove();
+      // Remove from array
+      const idx = tabs.findIndex(x => x.id === t.id);
+      tabs.splice(idx, 1);
+      // Choose another tab
+      if (tabs.length) {
+        const next = tabs[Math.max(0, idx - 1)];
+        switchTab(next.id);
+      } else {
+        activeTabId = null;
+        urlInput.value = "";
+        setStatus("");
+      }
+    }
+
+    // Navigation
+    async function navigate(tab, url, pushHistory) {
+      if (!tab) return;
+      setStatus("Loading...");
+      let displayUrl = url;
+      try {
+        // Normalize URL
+        if (!/^https?:\/\//i.test(url)) url = "https://" + url;
+        const abs = new URL(url).href;
+        displayUrl = abs;
+
+        const res = await fetch(PROXY + encodeURIComponent(abs), { cache: "no-store" });
+        if (!res.ok) throw new Error("HTTP " + res.status);
+        let html = await res.text();
+
+        // Parse and rewrite
+        const doc = new DOMParser().parseFromString(html, "text/html");
+        const baseEl = doc.querySelector("base") || doc.createElement("base");
+        baseEl.setAttribute("href", abs);
+        if (!baseEl.isConnected) doc.head.prepend(baseEl);
+
+        const ATTRS = ["href", "src", "action", "poster"];
+        const TAGS = ["a", "img", "link", "script", "iframe", "form", "video", "audio", "source"];
+        for (const el of doc.querySelectorAll(TAGS.join(","))) {
+          for (const attr of ATTRS) {
+            const val = el.getAttribute(attr);
+            if (!val) continue;
+            let resolved;
+            try { resolved = new URL(val, abs).href; } catch { continue; }
+            if (/^(data:|blob:|mailto:|tel:|javascript:)/i.test(resolved)) continue;
+            el.setAttribute(attr, PROXY + encodeURIComponent(resolved));
+            if (el.tagName.toLowerCase() === "a") el.setAttribute("data-proxied", "1");
+          }
+        }
+
+        // Intercept clicks/forms to route back to parent
+        const interceptor = doc.createElement("script");
+        interceptor.textContent = `
+          (function(){
+            document.addEventListener('click', function(e){
+              const a = e.target.closest('a[href]');
+              if (!a) return;
+              if (a.getAttribute('data-proxied') === '1') {
+                e.preventDefault();
+                const href = a.getAttribute('href') || '';
+                parent.postMessage({type:'navigate', href: href, tabId: '${tab.id}'}, '*');
+              }
+            }, true);
+            document.addEventListener('submit', function(e){
+              const f = e.target;
+              const method = (f.method || 'GET').toUpperCase();
+              const action = f.getAttribute('action') || location.href;
+              if (method === 'GET') {
+                e.preventDefault();
+                const formData = new FormData(f);
+                const params = new URLSearchParams(formData);
+                const url = action.includes('?') ? action + '&' + params.toString() : action + '?' + params.toString();
+                parent.postMessage({type:'navigate', href: url, tabId: '${tab.id}'}, '*');
+              }
+            }, true);
+          })();
+        `;
+        doc.body.appendChild(interceptor);
+
+        const serialized = "<!DOCTYPE html>\n" + doc.documentElement.outerHTML;
+        tab.iframe.srcdoc = serialized;
+
+        // Update history/title/UI
+        if (pushHistory) {
+          tab.history.splice(tab.index + 1);
+          tab.history.push(abs);
+          tab.index = tab.history.length - 1;
+        }
+        tab.title = tabTitleFromHTML(html);
+        const btn = tabsBar.querySelector(`button.tab-btn[data-id="${tab.id}"]`);
+        if (btn) btn.textContent = tab.title;
+        if (tab.id === activeTabId) urlInput.value = displayUrl;
+        setStatus("Loaded");
+        updateNavButtons();
+      } catch (err) {
+        setStatus("Failed to load");
+        tab.iframe.srcdoc = `<pre style="padding:16px;font-family:monospace">Error loading:\n${escapeHtml(String(err.message || err))}\n\nURL: ${escapeHtml(displayUrl)}</pre>`;
+        updateNavButtons();
+      }
+    }
+
+    function updateNavButtons() {
+      const t = activeTab();
+      if (!t) {
+        backBtn.disabled = true;
+        forwardBtn.disabled = true;
+        return;
+      }
+      backBtn.disabled = !(t.index > 0);
+      forwardBtn.disabled = !(t.index < t.history.length - 1);
+    }
+
+    // Global message handler for iframe navigation requests
+    window.addEventListener("message", (evt) => {
+      const data = evt.data || {};
+      if (data.type === "navigate" && data.href) {
+        // Decode proxied URL for display/history
+        let original = data.href;
+        try {
+          const u = new URL(data.href);
+          const proxyOrigin = new URL(PROXY).origin;
+          if (u.origin === proxyOrigin) {
+            const q = u.search || "";
+            const idx = q.indexOf("?");
+            const encoded = idx >= 0 ? q.slice(idx + 1) : "";
+            original = decodeURIComponent(encoded || "");
+          }
+        } catch {}
+        const tab = tabs.find(x => x.id === data.tabId) || activeTab();
+        if (tab && original) navigate(tab, original, true);
+      }
+    });
+
+    // Bookmarks
+    function getBookmarks() {
+      try { return JSON.parse(localStorage.getItem("bookmarks") || "[]"); }
+      catch { return []; }
+    }
+    function setBookmarks(bm) { localStorage.setItem("bookmarks", JSON.stringify(bm)); }
+    function addBookmark(url) {
+      const bm = getBookmarks();
+      if (!bm.includes(url)) {
+        bm.push(url);
+        setBookmarks(bm);
+        renderBookmarks();
+      }
+    }
+    function removeBookmark(url) {
+      const bm = getBookmarks().filter(x => x !== url);
+      setBookmarks(bm);
+      renderBookmarks();
+    }
+    function renderBookmarks() {
+      bookmarksBar.innerHTML = "";
+      const bm = getBookmarks();
+      for (const url of bm) {
+        const wrap = document.createElement("div");
+        wrap.style.display = "flex";
+        wrap.style.gap = "4px";
+        const btn = document.createElement("button");
+        btn.className = "bookmark-btn";
+        btn.textContent = url;
+        btn.title = url;
+        btn.onclick = () => {
+          const t = activeTab();
+          if (t) navigate(t, url, true);
+        };
+        const del = document.createElement("button");
+        del.textContent = "✕";
+        del.title = "Remove bookmark";
+        del.onclick = () => removeBookmark(url);
+        wrap.appendChild(btn);
+        wrap.appendChild(del);
+        bookmarksBar.appendChild(wrap);
+      }
+    }
+
+    // Events
+    backBtn.onclick = () => {
+      const t = activeTab();
+      if (!t || t.index <= 0) return;
+      t.index -= 1;
+      navigate(t, t.history[t.index], false);
+    };
+    forwardBtn.onclick = () => {
+      const t = activeTab();
+      if (!t || t.index >= t.history.length - 1) return;
+      t.index += 1;
+      navigate(t, t.history[t.index], false);
+    };
+    goBtn.onclick = () => {
+      const t = activeTab();
+      const raw = urlInput.value.trim();
+      if (!t || !raw) return;
+      navigate(t, raw, true);
+    };
+    urlInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") goBtn.click();
+    });
+    newTabBtn.onclick = () => createTab("https://example.com");
+    closeTabBtn.onclick = () => closeActiveTab();
+    bookmarkBtn.onclick = () => {
+      const t = activeTab();
+      const cur = t && t.history[t.index];
+      if (cur) addBookmark(cur);
+    };
+
+    // Init
+    renderBookmarks();
+    createTab("https://example.com");
+  </script>
+</body>
+</html>
