@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Locked Browser</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    html, body { height: 100%; margin: 0; background:#0f1115; color:#e6e6e6; font-family: system-ui, sans-serif; }
+    header { display:flex; align-items:center; gap:.75rem; padding:.75rem 1rem; border-bottom:1px solid #222; }
+    .status { margin-left:auto; font-size:.875rem; color:#8aa0aa; }
+    .btn { background:#24303a; color:#d9e2e7; border:1px solid #344250; border-radius:6px; padding:.5rem .75rem; cursor:pointer; }
+    .btn:disabled { opacity:.6; cursor:not-allowed; }
+    iframe { width:100%; height:calc(100% - 56px); border:0; background:#0b0d10; }
+    .lock { font-weight:600; color:#9bd; }
+  </style>
+</head>
+<body>
+  <header>
+    <span>Target:</span>
+    <code id="target">https://z1he3v.mimo.run/</code>
+    <span class="lock">corsproxy.io enforced</span>
+    <button id="reload" class="btn">Reload</button>
+    <button id="home" class="btn">Home</button>
+    <span id="status" class="status">Ready</span>
+  </header>
+
+  <iframe id="view" sandbox="allow-scripts allow-forms allow-same-origin"></iframe>
+
+  <script>
+    // Allowed origin and proxied base
+    const ALLOWED_ORIGIN = new URL("https://z1he3v.mimo.run/");
+    const PROXY_PREFIX = "https://corsproxy.io/?";
+    const HOME_URL = proxify(ALLOWED_ORIGIN.href);
+
+    const view = document.getElementById("view");
+    const statusEl = document.getElementById("status");
+    const reloadBtn = document.getElementById("reload");
+    const homeBtn = document.getElementById("home");
+
+    function proxify(url) {
+      // Always encode the full target URL
+      return PROXY_PREFIX + encodeURIComponent(url);
+    }
+
+    function setStatus(txt) {
+      statusEl.textContent = txt;
+    }
+
+    function isAllowed(url) {
+      try {
+        const u = new URL(url, ALLOWED_ORIGIN.href);
+        return u.origin === ALLOWED_ORIGIN.origin;
+      } catch { return false; }
+    }
+
+    function load(url) {
+      if (!isAllowed(url)) {
+        setStatus("Blocked: non-allowed origin");
+        return;
+      }
+      setStatus("Loading…");
+      view.src = proxify(url);
+    }
+
+    // Initial load
+    load(ALLOWED_ORIGIN.href);
+
+    // Buttons
+    reloadBtn.addEventListener("click", () => {
+      const current = view.src && view.src.startsWith(PROXY_PREFIX) ? view.src : HOME_URL;
+      // Force a hard reload by reassigning
+      view.src = current;
+      setStatus("Reloading…");
+    });
+    homeBtn.addEventListener("click", () => load(ALLOWED_ORIGIN.href));
+
+    // Navigation guard for links inside the iframe:
+    // Inject a small script that rewrites same-origin anchors to proxied URLs and blocks others.
+    view.addEventListener("load", () => {
+      setStatus("Loaded");
+      try {
+        const doc = view.contentDocument;
+        if (!doc) return;
+
+        // Rewrite existing links
+        doc.querySelectorAll("a[href]").forEach(a => {
+          const href = a.getAttribute("href");
+          const resolved = new URL(href, ALLOWED_ORIGIN.href).href;
+          if (isAllowed(resolved)) {
+            // Route via our parent loader
+            a.addEventListener("click", (e) => {
+              e.preventDefault();
+              load(resolved);
+            });
+            // Visual cue (optional)
+            a.style.textDecoration = "underline";
+          } else {
+            a.addEventListener("click", (e) => {
+              e.preventDefault();
+              setStatus("Blocked: external link");
+            });
+            a.style.pointerEvents = "auto";
+            a.style.opacity = "0.6";
+            a.title = "Blocked external link";
+          }
+        });
+
+        // Intercept form submissions to keep them proxied and same-origin
+        doc.querySelectorAll("form").forEach(form => {
+          form.addEventListener("submit", (e) => {
+            const action = form.getAttribute("action") || ALLOWED_ORIGIN.href;
+            const resolved = new URL(action, ALLOWED_ORIGIN.href).href;
+            if (!isAllowed(resolved)) {
+              e.preventDefault();
+              setStatus("Blocked: external form action");
+              return;
+            }
+            // Let browser submit; sandbox allow-forms + allow-same-origin keeps it in frame,
+            // but still proxied because src is proxified. For single-page forms, you may need
+            // to re-load explicitly after submission.
+          });
+        });
+
+        // Prevent window.open from escaping
+        const win = view.contentWindow;
+        if (win) {
+          const originalOpen = win.open;
+          win.open = function(url, name, specs) {
+            try {
+              const target = new URL(url, ALLOWED_ORIGIN.href).href;
+              if (isAllowed(target)) {
+                load(target);
+              } else {
+                setStatus("Blocked: external window.open");
+              }
+            } catch {
+              setStatus("Blocked: invalid window.open");
+            }
+            return null;
+          };
+        }
+      } catch {
+        // Cross-origin pages may block DOM access; fallback is the origin check via load()
+        setStatus("Sandboxed content");
+      }
+    });
+
+    // Optional: prevent drag & drop navigation into the page
+    ["dragover", "drop"].forEach(evt =>
+      document.addEventListener(evt, e => { e.preventDefault(); })
+    );
+  </script>
+</body>
+</html>
