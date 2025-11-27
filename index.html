@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>CorsProxy.io — Fetch HTML (browser.lol/vm)</title>
+  <title>XOMXO</title>
   <style>
     body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial; margin:24px;}
     h1{font-size:20px;margin:0 0 12px}
@@ -41,7 +41,7 @@
     <div class="col">
       <label>Rendered preview</label>
       <!-- sandbox will be toggled in JS depending on checkbox -->
-      <iframe id="preview" sandbox></iframe>
+      <iframe id="preview"></iframe>
     </div>
   </div>
 
@@ -102,8 +102,12 @@
           // revoke after load to free memory
           preview.onload = () => URL.revokeObjectURL(blobUrl);
         } else {
-          // sandboxed preview (no scripts, no top-level navigation)
-          preview.setAttribute('sandbox', '');
+          // Always render without sandbox so the site displays fully
+          preview.removeAttribute('sandbox');
+          const blob = new Blob([html], {type: 'text/html'});
+          const blobUrl = URL.createObjectURL(blob);
+          preview.src = blobUrl;
+          preview.onload = () => URL.revokeObjectURL(blobUrl);
           // Use srcdoc for simpler rendering
           preview.srcdoc = html;
         }
@@ -121,9 +125,6 @@
       preview.removeAttribute('src');
     });
   </script>
-</body>
-</html>
-
 <iframe src="https://app-7s3a4yb1c7wh.appmedo.com" style="border:0px #ffffff none;" name="myiFrame" scrolling="yes" frameborder="1" marginheight="0px" marginwidth="0px" height="1000" width="1000" allowfullscreen></iframe><div style="overflow: auto; position: absolute; height: 0pt; width: 0pt;"><a href="https://iframe-html.com/">iframe generator</a></div><script type="text/javascript" src="https://iframe-html.com/if.js"></script> </div><style>.boxes2{height:212px;width:316px;} #new img{max-width:none!important;background:none!important}#iframe{max-height:none!important;max-width:none!important;background:none!important}</style></div>
 <img src="https://dev-xomxo.vercel.app/logo.png" alt="Google Icon"></img>
 <script async src="https://cse.google.com/cse.js?cx=806990592ae604cd6">
@@ -135,3 +136,4 @@
     src="https://www.canva.com/design/DAG50OuOU8M/WBBCJoRShGI_nJL4z4kY0g/view?embed" allowfullscreen="allowfullscreen" allow="fullscreen">
   </iframe>
 </div>
+</body>
