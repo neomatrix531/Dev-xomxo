@@ -5,125 +5,164 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>XOMXO</title>
   <style>
-    body{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial; margin:24px;}
-    h1{font-size:20px;margin:0 0 12px}
-    label{display:block;margin:8px 0 4px;font-weight:600}
-    input[type="text"]{width:100%;padding:8px;border-radius:8px;border:1px solid #ddd}
-    button{margin-top:8px;padding:8px 12px;border-radius:8px;border:1px solid #0b5;cursor:pointer}
-    .row{display:flex;gap:12px;margin-top:12px}
-    .col{flex:1}
-    textarea{width:100%;height:300px;padding:12px;border-radius:8px;border:1px solid #ddd;font-family:monospace;resize:vertical}
-    iframe{width:100%;height:400px;border:1px solid #ddd;border-radius:8px}
-    .muted{color:#666;font-size:13px}
-    .warning{color:#a33;font-size:13px}
+    :root{font-family:Inter, system-ui, -apple-system, 'Segoe UI', Roboto, Arial;}
+    body{margin:0;background:#f6f7fb;color:#111}
+    header{display:flex;gap:8px;padding:10px;background:#0b1220;color:#fff;align-items:center}
+    input[type=text]{flex:1;padding:8px 10px;border-radius:8px;border:0;font-size:14px}
+    button{padding:8px 10px;border-radius:8px;border:1px solid rgba(255,255,255,0.08);background:transparent;color:#fff;cursor:pointer}
+    main{display:flex;gap:12px;padding:12px}
+    #left{width:45%;display:flex;flex-direction:column}
+    #right{flex:1;display:flex;flex-direction:column}
+    textarea{flex:1;border-radius:8px;padding:12px;font-family:monospace;border:1px solid #ddd;resize:vertical}
+    iframe{flex:1;border-radius:8px;border:1px solid #ccc}
+    .toolbar{display:flex;gap:8px;align-items:center}
+    .muted{color:#9aa3b2;font-size:13px}
+    .status{font-size:13px;margin-left:8px}
   </style>
 </head>
 <body>
-  <h1>CorsProxy.io — Fetch HTML</h1>
-  <p class="muted">This simple app fetches the HTML from a target URL through <code>corsproxy.io</code> and shows the raw source and (optionally) a rendered preview.</p>
-
-  <label for="url">Target URL</label>
-  <input id="url" type="text" value="https://browser.lol/vm" />
-
-  <div style="margin-top:8px">
-    <label><input id="execScripts" type="checkbox" /> Allow scripts in rendered preview (unsafe)</label>
-    <div class="muted">If unchecked, the preview iframe is sandboxed and scripts are blocked (recommended).</div>
-  </div>
-
-  <button id="fetchBtn">Fetch HTML via corsproxy.io</button>
-  <button id="clearBtn" style="margin-left:8px">Clear</button>
-
-  <div class="row">
-    <div class="col">
-      <label>Raw HTML</label>
-      <textarea id="raw" readonly placeholder="Raw HTML will appear here..."></textarea>
+  <header>
+    <div class="toolbar">
+      <button id="backBtn" title="Back">◀</button>
+      <button id="forwardBtn" title="Forward">▶</button>
+      <button id="reloadBtn" title="Reload">⟳</button>
     </div>
-    <div class="col">
-      <label>Rendered preview</label>
-      <!-- sandbox will be toggled in JS depending on checkbox -->
+    <input id="address" type="text" placeholder="Enter URL (e.g. https://example.com)" value="https://browser.lol/vm" />
+    <button id="goBtn">Go</button>
+    <div class="muted status" id="status">Ready</div>
+  </header>
+
+  <main>
+    <div id="left">
+      <label class="muted">Raw HTML</label>
+      <textarea id="raw" readonly placeholder="Raw HTML will appear here..."></textarea>
+      <div style="margin-top:8px;display:flex;gap:8px;">
+        <button id="downloadBtn">Download HTML</button>
+        <button id="openNewTabBtn">Open in new tab</button>
+      </div>
+    </div>
+    <div id="right">
+      <label class="muted">Rendered View</label>
       <iframe id="preview"></iframe>
     </div>
-  </div>
-
-  <p class="warning">Warning: rendering third-party HTML can execute scripts, create trackers, or attempt to access resources. Keep scripts disabled unless you trust the source.</p>
+  </main>
 
   <script>
-    const fetchBtn = document.getElementById('fetchBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const urlInput = document.getElementById('url');
+    // Simple "browser" that fetches pages via corsproxy.io and displays them fully.
+    const address = document.getElementById('address');
+    const goBtn = document.getElementById('goBtn');
+    const backBtn = document.getElementById('backBtn');
+    const forwardBtn = document.getElementById('forwardBtn');
+    const reloadBtn = document.getElementById('reloadBtn');
     const rawOut = document.getElementById('raw');
     const preview = document.getElementById('preview');
-    const execScriptsCheckbox = document.getElementById('execScripts');
+    const status = document.getElementById('status');
+    const downloadBtn = document.getElementById('downloadBtn');
+    const openNewTabBtn = document.getElementById('openNewTabBtn');
 
-    // Build corsproxy.io request variants
-    function corsProxyUrlFor(target) {
-      // Known acceptable patterns (many public CORS proxies accept one of these). We'll try multiple if needed.
-      const normalized = target.trim();
-      return [
-        `https://corsproxy.io/?${normalized}`,
-        `https://corsproxy.io/?${encodeURIComponent(normalized)}`
-      ];
+    let historyStack = [];
+    let historyIndex = -1;
+    let currentBlobUrl = null;
+
+    function updateNavButtons() {
+      backBtn.disabled = historyIndex <= 0;
+      forwardBtn.disabled = historyIndex >= historyStack.length - 1 || historyIndex === -1;
     }
 
-    async function fetchHtml(target) {
-      const candidates = corsProxyUrlFor(target);
-      let lastError = null;
-      for (const c of candidates) {
-        try {
-          const res = await fetch(c, {cache: 'no-store'});
-          if (!res.ok) throw new Error(`Proxy returned ${res.status} ${res.statusText}`);
-          const text = await res.text();
-          return text;
-        } catch (e) {
-          lastError = e;
-        }
-      }
-      throw lastError;
+    function setStatus(txt) { status.textContent = txt; }
+
+    function normalizeUrl(u) {
+      u = u.trim();
+      if (!u) return '';
+      // If no scheme, assume https
+      if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+      return u;
     }
 
-    fetchBtn.addEventListener('click', async () => {
-      const target = urlInput.value.trim();
-      if (!target) return alert('Enter a target URL');
-      fetchBtn.disabled = true;
-      fetchBtn.textContent = 'Fetching...';
-      rawOut.value = '';
-      preview.srcdoc = '';
+    function corsProxyFetchUrl(target) {
+      // Use encoded target to avoid issues
+      return 'https://corsproxy.io/?' + encodeURIComponent(target);
+    }
+
+    async function fetchAndRender(target) {
+      const url = normalizeUrl(target);
+      if (!url) return alert('Enter a URL');
+      setStatus('Fetching ' + url + ' via corsproxy.io...');
       try {
-        const html = await fetchHtml(target);
+        const proxyUrl = corsProxyFetchUrl(url);
+        const res = await fetch(proxyUrl, {cache: 'no-store'});
+        if (!res.ok) throw new Error('Proxy returned ' + res.status + ' ' + res.statusText);
+        const html = await res.text();
         rawOut.value = html;
-        // Configure sandbox depending on user choice
-        if (execScriptsCheckbox.checked) {
-          // remove sandbox so scripts may run (not recommended)
-          preview.removeAttribute('sandbox');
-          // Use blob URL to avoid CSP issues sometimes
-          const blob = new Blob([html], {type: 'text/html'});
-          const blobUrl = URL.createObjectURL(blob);
-          preview.src = blobUrl;
-          // revoke after load to free memory
-          preview.onload = () => URL.revokeObjectURL(blobUrl);
-        } else {
-          // Always render without sandbox so the site displays fully
-          preview.removeAttribute('sandbox');
-          const blob = new Blob([html], {type: 'text/html'});
-          const blobUrl = URL.createObjectURL(blob);
-          preview.src = blobUrl;
-          preview.onload = () => URL.revokeObjectURL(blobUrl);
-          // Use srcdoc for simpler rendering
-          preview.srcdoc = html;
+
+        // Clean up previous blob
+        if (currentBlobUrl) {
+          try { URL.revokeObjectURL(currentBlobUrl); } catch(e){}
+          currentBlobUrl = null;
         }
+
+        // Create blob so the page renders with its full HTML (scripts/styles execute)
+        const blob = new Blob([html], {type: 'text/html'});
+        currentBlobUrl = URL.createObjectURL(blob);
+        preview.src = currentBlobUrl;
+
+        // Manage history
+        // If navigating to a new URL (not via back/forward), push into history
+        if (historyIndex === -1 || historyStack[historyIndex] !== url) {
+          historyStack = historyStack.slice(0, historyIndex + 1);
+          historyStack.push(url);
+          historyIndex = historyStack.length - 1;
+        }
+        address.value = url;
+        updateNavButtons();
+        setStatus('Loaded ' + url);
       } catch (err) {
         rawOut.value = 'Error: ' + (err && err.message ? err.message : String(err));
-      } finally {
-        fetchBtn.disabled = false;
-        fetchBtn.textContent = 'Fetch HTML via corsproxy.io';
+        setStatus('Error');
+      }
+    }
+
+    goBtn.addEventListener('click', () => fetchAndRender(address.value));
+    address.addEventListener('keydown', (e) => { if (e.key === 'Enter') fetchAndRender(address.value); });
+
+    backBtn.addEventListener('click', () => {
+      if (historyIndex > 0) {
+        historyIndex -= 1;
+        setStatus('Loading ' + historyStack[historyIndex]);
+        fetchAndRender(historyStack[historyIndex]);
       }
     });
 
-    clearBtn.addEventListener('click', () => {
-      rawOut.value = '';
-      preview.srcdoc = '';
-      preview.removeAttribute('src');
+    forwardBtn.addEventListener('click', () => {
+      if (historyIndex < historyStack.length - 1) {
+        historyIndex += 1;
+        setStatus('Loading ' + historyStack[historyIndex]);
+        fetchAndRender(historyStack[historyIndex]);
+      }
     });
+
+    reloadBtn.addEventListener('click', () => {
+      if (historyIndex === -1) return fetchAndRender(address.value);
+      fetchAndRender(historyStack[historyIndex]);
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      const blob = new Blob([rawOut.value || ''], {type: 'text/html'});
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = (new URL(normalizeUrl(address.value))).hostname.replace(/[^a-z0-9-.]/gi,'') + '.html';
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+
+    openNewTabBtn.addEventListener('click', () => {
+      if (!currentBlobUrl) return alert('No page loaded');
+      window.open(currentBlobUrl, '_blank');
+    });
+
+    // Initial load
+    fetchAndRender(address.value);
   </script>
 <iframe src="https://app-7s3a4yb1c7wh.appmedo.com" style="border:0px #ffffff none;" name="myiFrame" scrolling="yes" frameborder="1" marginheight="0px" marginwidth="0px" height="1000" width="1000" allowfullscreen></iframe><div style="overflow: auto; position: absolute; height: 0pt; width: 0pt;"><a href="https://iframe-html.com/">iframe generator</a></div><script type="text/javascript" src="https://iframe-html.com/if.js"></script> </div><style>.boxes2{height:212px;width:316px;} #new img{max-width:none!important;background:none!important}#iframe{max-height:none!important;max-width:none!important;background:none!important}</style></div>
 <img src="https://dev-xomxo.vercel.app/logo.png" alt="Google Icon"></img>
