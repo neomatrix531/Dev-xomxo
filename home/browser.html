@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CORSProxy Browser + Search</title>
+
+  <style>
+    body {
+      margin: 0;
+      background: #111;
+      color: #eee;
+      font-family: Arial, sans-serif;
+    }
+    header {
+      background: #1e1e1e;
+      padding: 10px;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+    input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 8px;
+      border: none;
+      outline: none;
+      font-size: 16px;
+    }
+    button {
+      padding: 10px 18px;
+      border: none;
+      border-radius: 8px;
+      background: #4a8dfc;
+      color: white;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    iframe {
+      width: 100%;
+      height: calc(100vh - 60px);
+      border: none;
+      background: white;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <input id="urlInput" placeholder="Enter a URL or search term..." />
+  <button onclick="loadSite()">Go</button>
+</header>
+
+<iframe id="browserFrame" src=""></iframe>
+
+<script>
+  function loadSite() {
+    let input = document.getElementById("urlInput").value.trim();
+    if (!input) return alert("Enter a URL or search term first!");
+
+    let finalUrl;
+
+    // check if input looks like a URL (contains a dot)
+    if (input.includes('.') && !input.includes(' ')) {
+      // ensure protocol
+      finalUrl = input.startsWith("http") ? input : "https://" + input;
+    } else {
+      // treat as search term (Google search)
+      const query = encodeURIComponent(input);
+      finalUrl = `https://www.google.com/search?q=${query}`;
+    }
+
+    // pass through CORS proxy
+    const proxied = `https://corsproxy.io/?${encodeURIComponent(finalUrl)}`;
+    document.getElementById("browserFrame").src = proxied;
+  }
+
+  // Optional: allow Enter key to trigger search
+  document.getElementById("urlInput").addEventListener("keypress", function(e) {
+    if (e.key === "Enter") loadSite();
+  });
+</script>
+
+</body>
+</html>
