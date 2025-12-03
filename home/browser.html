@@ -3,156 +3,163 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>CorsProxy Browser — Vanilla JS (no libraries)</title>
+  <title>CorsProxy.io — fetch & display (no iframe)</title>
   <style>
-    :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;}
-    body{margin:0;background:#f7f7fb;color:#111;padding:20px}
-    .wrap{max-width:980px;margin:0 auto;background:#fff;padding:18px;border-radius:10px;box-shadow:0 6px 18px rgba(20,20,40,0.06)}
-    h1{margin:0 0 12px;font-size:20px}
-    label{font-size:13px;color:#333}
-    .row{display:flex;gap:8px;align-items:center}
-    input[type=text]{flex:1;padding:10px;border:1px solid #ddd;border-radius:6px}
-    select,button{padding:10px;border-radius:6px;border:1px solid #ddd;background:#fff}
-    button{cursor:pointer}
-    .meta{margin-top:10px;font-size:13px;color:#555}
-    pre{background:#0b1220;color:#d6e9ff;padding:12px;border-radius:8px;overflow:auto;white-space:pre-wrap}
-    iframe.preview{width:100%;height:420px;border:1px solid #e3e7ee;border-radius:8px}
-    .controls{display:flex;gap:8px;margin-top:10px}
-    .small{font-size:12px;color:#666}
-    .error{color:#9b1a1a;background:#fff0f0;padding:8px;border-radius:6px;margin-top:8px}
-    footer{margin-top:12px;font-size:12px;color:#666}
+    :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{margin:0;background:#f6f8fb;color:#111}
+    header{padding:12px 16px;background:#0b5cff;color:#fff;display:flex;gap:12px;align-items:center}
+    header h1{font-size:16px;margin:0}
+    main{padding:16px}
+    .controls{display:flex;gap:8px;align-items:center;margin-bottom:12px}
+    input[type=text]{flex:1;padding:8px;border-radius:6px;border:1px solid #d6dbe8}
+    button{padding:8px 12px;border-radius:6px;border:0;background:#0b5cff;color:#fff;cursor:pointer}
+    .warning{background:#fff3cd;border:1px solid #ffeeba;padding:10px;border-radius:6px;margin-bottom:12px}
+    #target{border:1px solid #e6eaf2;background:#fff;padding:12px;border-radius:8px;min-height:400px}
+    pre{white-space:pre-wrap}
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <h1>CorsProxy Browser — plain HTML + vanilla JavaScript (no libraries)</h1>
-    <p class="small">This tool fetches a URL through <code>https://corsproxy.io/?url=...</code> and displays the response. It does NOT embed the corsproxy.io site — it only uses the proxy endpoint to perform the request.</p>
-
-    <form id="frm">
-      <div class="row">
-        <input id="url" type="text" placeholder="https://example.com/data.json" autocomplete="off" />
-        <select id="method"><option>GET</option><option>POST</option></select>
-        <button id="go">Fetch</button>
-      </div>
-
-      <div class="controls">
-        <label><input id="showPreviewCheckbox" type="checkbox" /> Show HTML preview (sandboxed, scripts blocked)</label>
-      </div>
-    </form>
-
-    <div class="meta" id="meta">No request yet.</div>
-    <div id="error" class="error" style="display:none"></div>
-
-    <h3 style="margin-top:14px">Response</h3>
-    <pre id="resp">(response body will appear here)</pre>
-
-    <div id="previewWrap" style="display:none;margin-top:12px">
-      <h3>Sandboxed HTML Preview (scripts blocked)</h3>
-      <!-- sandbox attribute intentionally omits allow-scripts so remote JS cannot run -->
-      <iframe id="preview" class="preview" sandbox=""></iframe>
+  <header>
+    <h1>CorsProxy.io → fetch & render (no iframe)</h1>
+    <small>Target: <strong>https://appetize.io/demo</strong></small>
+  </header>
+  <main>
+    <div class="warning">
+      ⚠️ This page fetches remote HTML and injects it into the current page without using an iframe. This **may break** functionality for sites that rely on CSP, inline scripts, cookies, or complex JS. Scripts are removed by default for safety. Use only on sites you control or have permission to proxy.
     </div>
 
-    <footer>Notes: Scripts in fetched HTML are removed from the preview and the iframe is heavily sandboxed. This app intentionally uses no external libraries.</footer>
-  </div>
+    <div class="controls">
+      <input id="url" type="text" value="https://appetize.io/demo" />
+      <select id="proxy"><option value="https://corsproxy.io/?url=">https://corsproxy.io/?url=</option><option value="https://api.allorigins.win/raw?url=">https://api.allorigins.win/raw?url=</option></select>
+      <button id="load">Fetch & Render</button>
+      <button id="raw">Show raw HTML</button>
+    </div>
+
+    <div id="status" aria-live="polite"></div>
+    <div id="target" tabindex="0">Ready — click "Fetch & Render"</div>
+  </main>
 
   <script>
-    // Helpers
-    function qs(id){return document.getElementById(id)}
-    function setText(el, txt){el.textContent = txt}
+    // Helper: absolute URL from relative
+    function resolveUrl(base, u){ try { return new URL(u, base).href } catch(e){ return u } }
 
-    // Sanitize minimaly for preview: remove <script>...</script> blocks and <iframe> tags
-    function sanitizeHtml(html){
-      // remove script tags
-      html = html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');
-      // remove iframe tags entirely
-      html = html.replace(/<iframe[\s\S]*?>[\s\S]*?<\/iframe>/gi, '');
-      // remove on* attributes (onclick, onload, etc.)
-      html = html.replace(/ on[\w-]+=("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
-      return html;
-    }
+    async function fetchAndRender(proxyPrefix, targetUrl){
+      const status = document.getElementById('status');
+      const target = document.getElementById('target');
+      status.textContent = 'Fetching...';
+      target.innerHTML = '';
 
-    function makeProxyUrl(url){
-      return 'https://corsproxy.io/?url=' + encodeURIComponent(url);
-    }
+      const proxied = proxyPrefix + encodeURIComponent(targetUrl);
 
-    var frm = qs('frm');
-    var urlInput = qs('url');
-    var methodSelect = qs('method');
-    var respPre = qs('resp');
-    var meta = qs('meta');
-    var err = qs('error');
-    var previewWrap = qs('previewWrap');
-    var preview = qs('preview');
-    var showPreviewCheckbox = qs('showPreviewCheckbox');
+      try{
+        const resp = await fetch(proxied, {mode:'cors'});
+        if(!resp.ok) throw new Error(resp.status + ' ' + resp.statusText);
+        const text = await resp.text();
 
-    frm.addEventListener('submit', function(ev){
-      ev.preventDefault();
-      err.style.display = 'none';
-      respPre.textContent = '(loading...)';
-      previewWrap.style.display = 'none';
+        // parse HTML
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(text, 'text/html');
 
-      var target = urlInput.value.trim();
-      if(!target){
-        showError('Please enter a URL to fetch.');
-        return;
-      }
+        // remove script tags for safety
+        const scripts = Array.from(doc.querySelectorAll('script'));
+        scripts.forEach(s => s.parentNode && s.parentNode.removeChild(s));
 
-      // Ensure URL seems valid — basic check
-      try{ new URL(target); } catch(e){ showError('Invalid URL. Include https://'); return; }
+        // remove meta CSP tags
+        Array.from(doc.querySelectorAll('meta[http-equiv]')).forEach(m=>{
+          const v = (m.getAttribute('http-equiv')||'').toLowerCase();
+          if(v.includes('content-security-policy')) m.remove();
+        });
 
-      var proxy = makeProxyUrl(target);
+        // create a <base> so relative URLs resolve to the proxied origin
+        const base = doc.querySelector('base') || doc.createElement('base');
+        base.setAttribute('href', targetUrl);
+        doc.head.insertBefore(base, doc.head.firstChild);
 
-      meta.textContent = 'Requesting: ' + target + ' (via corsproxy.io) — method: ' + methodSelect.value;
-
-      fetch(proxy, { method: methodSelect.value })
-        .then(function(res){
-          var ctype = res.headers.get('content-type') || '';
-          meta.textContent += ' | content-type: ' + ctype;
-          return res.text().then(function(text){
-            // If JSON, pretty print
-            if(ctype.indexOf('application/json') !== -1){
-              try{ respPre.textContent = JSON.stringify(JSON.parse(text), null, 2); }
-              catch(e){ respPre.textContent = text; }
-            } else if(ctype.indexOf('text/html') !== -1){
-              respPre.textContent = text;
-              if(showPreviewCheckbox.checked){
-                var safe = sanitizeHtml(text);
-                // Use srcdoc so no additional network load goes through local origin
-                preview.setAttribute('srcdoc', safe);
-                previewWrap.style.display = '';
-              }
-            } else {
-              respPre.textContent = text;
+        // rewrite relative resource URLs (img, link, a) to absolute so browser requests original host
+        const attrs = [ ['img','src'], ['link','href'], ['a','href'], ['video','src'], ['source','src'] ];
+        attrs.forEach(([tag, attr])=>{
+          Array.from(doc.getElementsByTagName(tag)).forEach(el=>{
+            const v = el.getAttribute(attr);
+            if(v && !v.match(/^([a-z]+:)?\/\//i)){
+              el.setAttribute(attr, resolveUrl(targetUrl, v));
             }
           });
-        })
-        .catch(function(e){ showError('Fetch error: ' + (e && e.message ? e.message : e)); });
-    });
+        });
 
-    function showError(msg){
-      err.style.display = '';
-      err.textContent = msg;
-      respPre.textContent = '(error)';
+        // move all <link rel=stylesheet> into a style loader to avoid CSP issues
+        const stylesheets = Array.from(doc.querySelectorAll('link[rel="stylesheet"]'));
+        const stylePromises = stylesheets.map(async link => {
+          try{
+            const href = link.href || link.getAttribute('href');
+            const res = await fetch(proxyPrefix + encodeURIComponent(href));
+            if(!res.ok) return '';
+            const css = await res.text();
+            return css;
+          }catch(e){ return '' }
+        });
+
+        const cssBlocks = (await Promise.all(stylePromises)).filter(Boolean).join('\n/* --- proxied sheet --- */\n');
+
+        // inline the combined CSS into a style tag for rendering
+        const styleTag = doc.createElement('style');
+        styleTag.textContent = cssBlocks;
+        // remove original link tags
+        stylesheets.forEach(l=>l.remove());
+        doc.head.appendChild(styleTag);
+
+        // strip out forms that post back to the original host (optional safety)
+        Array.from(doc.querySelectorAll('form')).forEach(f=>{
+          f.setAttribute('action', 'javascript:;');
+        });
+
+        // sanitize inline event handlers (onclick etc.) by removing attributes starting with 'on'
+        Array.from(doc.querySelectorAll('*')).forEach(el=>{
+          Array.from(el.attributes).forEach(attr=>{
+            if(attr.name.startsWith('on')) el.removeAttribute(attr.name);
+          });
+        });
+
+        // now serialise the body and head into our target container
+        // we keep head styles but not scripts
+        const contentWrapper = document.createElement('div');
+        // import children of body into wrapper
+        Array.from(doc.body.childNodes).forEach(n=>contentWrapper.appendChild(document.importNode(n, true)));
+
+        // append a note and the content
+        const note = document.createElement('div');
+        note.style.fontSize='12px';
+        note.style.marginBottom='8px';
+        note.innerHTML = '<em>Rendered via corsproxy.io — scripts removed for safety. Some interactive features may not work.</em>';
+
+        target.appendChild(note);
+        target.appendChild(contentWrapper);
+
+        status.textContent = 'Rendered. Stylesheets were proxied and inlined. Scripts were removed.';
+      }catch(err){
+        status.textContent = 'Error: ' + err.message;
+        target.innerHTML = '<pre>' + (err.stack || err.message) + '</pre>';
+      }
     }
 
-    // Toggle preview visibility if checkbox changed
-    showPreviewCheckbox.addEventListener('change', function(){
-      if(!showPreviewCheckbox.checked){ previewWrap.style.display = 'none'; }
-      else if(respPre.textContent && respPre.textContent !== '(response body will appear here)' && respPre.textContent !== '(loading...)' && respPre.textContent !== '(error)'){
-        // attempt to create preview only if last response was HTML
-        try{
-          var txt = respPre.textContent;
-          // naive check: if string contains <html or <body
-          if(txt.indexOf('<') !== -1){
-            preview.setAttribute('srcdoc', sanitizeHtml(txt));
-            previewWrap.style.display = '';
-          }
-        }catch(e){/* ignore */}
-      }
+    document.getElementById('load').addEventListener('click', ()=>{
+      const url = document.getElementById('url').value.trim();
+      const proxy = document.getElementById('proxy').value;
+      fetchAndRender(proxy, url);
     });
 
-    // Optional: allow pressing Enter to fetch when focus is in URL box
-    urlInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); frm.dispatchEvent(new Event('submit')); } });
+    // show raw HTML in a dialog
+    document.getElementById('raw').addEventListener('click', async ()=>{
+      const url = document.getElementById('url').value.trim();
+      const proxy = document.getElementById('proxy').value;
+      const proxied = proxy + encodeURIComponent(url);
+      const resp = await fetch(proxied);
+      const text = await resp.text();
+      const w = window.open('about:blank','_blank');
+      w.document.write('<pre>'+escapeHtml(text)+'</pre>');
+      w.document.close();
+    });
+
+    function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   </script>
 </body>
 </html>
