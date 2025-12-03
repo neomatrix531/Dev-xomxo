@@ -1,66 +1,158 @@
-<!DOCTYPE html>
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-  <title>CORSProxy.io Browser</title>
-  <meta charset="UTF-8">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>CorsProxy Browser — Vanilla JS (no libraries)</title>
   <style>
-    body { font-family: Arial; padding: 20px; }
-    input { width: 80%; padding: 10px; }
-    button { padding: 10px 20px; }
-    #viewer { width: 100%; height: 80vh; margin-top: 20px; }
-    iframe { width: 100%; height: 100%; border: 1px solid #ccc; }
-    pre { white-space: pre-wrap; padding: 10px; background: #eee; height:100%; overflow:auto; }
+    :root{font-family:system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial;}
+    body{margin:0;background:#f7f7fb;color:#111;padding:20px}
+    .wrap{max-width:980px;margin:0 auto;background:#fff;padding:18px;border-radius:10px;box-shadow:0 6px 18px rgba(20,20,40,0.06)}
+    h1{margin:0 0 12px;font-size:20px}
+    label{font-size:13px;color:#333}
+    .row{display:flex;gap:8px;align-items:center}
+    input[type=text]{flex:1;padding:10px;border:1px solid #ddd;border-radius:6px}
+    select,button{padding:10px;border-radius:6px;border:1px solid #ddd;background:#fff}
+    button{cursor:pointer}
+    .meta{margin-top:10px;font-size:13px;color:#555}
+    pre{background:#0b1220;color:#d6e9ff;padding:12px;border-radius:8px;overflow:auto;white-space:pre-wrap}
+    iframe.preview{width:100%;height:420px;border:1px solid #e3e7ee;border-radius:8px}
+    .controls{display:flex;gap:8px;margin-top:10px}
+    .small{font-size:12px;color:#666}
+    .error{color:#9b1a1a;background:#fff0f0;padding:8px;border-radius:6px;margin-top:8px}
+    footer{margin-top:12px;font-size:12px;color:#666}
   </style>
 </head>
 <body>
+  <div class="wrap">
+    <h1>CorsProxy Browser — plain HTML + vanilla JavaScript (no libraries)</h1>
+    <p class="small">This tool fetches a URL through <code>https://corsproxy.io/?url=...</code> and displays the response. It does NOT embed the corsproxy.io site — it only uses the proxy endpoint to perform the request.</p>
 
-<h2>CORSProxy.io Browser</h2>
+    <form id="frm">
+      <div class="row">
+        <input id="url" type="text" placeholder="https://example.com/data.json" autocomplete="off" />
+        <select id="method"><option>GET</option><option>POST</option></select>
+        <button id="go">Fetch</button>
+      </div>
 
-<input id="urlInput" placeholder="Enter a URL (https://example.com)">
-<button onclick="loadSite()">Load</button>
+      <div class="controls">
+        <label><input id="showPreviewCheckbox" type="checkbox" /> Show HTML preview (sandboxed, scripts blocked)</label>
+      </div>
+    </form>
 
-<select id="mode">
-  <option value="html">Show Raw HTML</option>
-  <option value="sandbox">Sandboxed Preview</option>
-</select>
+    <div class="meta" id="meta">No request yet.</div>
+    <div id="error" class="error" style="display:none"></div>
 
-<div id="viewer"></div>
+    <h3 style="margin-top:14px">Response</h3>
+    <pre id="resp">(response body will appear here)</pre>
 
-<script>
-async function loadSite() {
-  const url = document.getElementById("urlInput").value.trim();
-  const mode = document.getElementById("mode").value;
-  const viewer = document.getElementById("viewer");
+    <div id="previewWrap" style="display:none;margin-top:12px">
+      <h3>Sandboxed HTML Preview (scripts blocked)</h3>
+      <!-- sandbox attribute intentionally omits allow-scripts so remote JS cannot run -->
+      <iframe id="preview" class="preview" sandbox=""></iframe>
+    </div>
 
-  if (!url) {
-    alert("Enter a URL first.");
-    return;
-  }
+    <footer>Notes: Scripts in fetched HTML are removed from the preview and the iframe is heavily sandboxed. This app intentionally uses no external libraries.</footer>
+  </div>
 
-  const proxied = "https://corsproxy.io/?" + encodeURIComponent(url);
+  <script>
+    // Helpers
+    function qs(id){return document.getElementById(id)}
+    function setText(el, txt){el.textContent = txt}
 
-  viewer.innerHTML = "<p>Loading...</p>";
-
-  try {
-    const res = await fetch(proxied);
-    const text = await res.text();
-
-    if (mode === "html") {
-      // show raw HTML safely
-      viewer.innerHTML = "<pre></pre>";
-      viewer.querySelector("pre").textContent = text;
-    } else {
-      // sandbox the HTML so scripts can't run
-      const blob = new Blob([text], { type: "text/html" });
-      const blobURL = URL.createObjectURL(blob);
-      viewer.innerHTML = `<iframe sandbox="allow-same-origin" src="${blobURL}"></iframe>`;
+    // Sanitize minimaly for preview: remove <script>...</script> blocks and <iframe> tags
+    function sanitizeHtml(html){
+      // remove script tags
+      html = html.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');
+      // remove iframe tags entirely
+      html = html.replace(/<iframe[\s\S]*?>[\s\S]*?<\/iframe>/gi, '');
+      // remove on* attributes (onclick, onload, etc.)
+      html = html.replace(/ on[\w-]+=("[^"]*"|'[^']*'|[^\s>]+)/gi, '');
+      return html;
     }
 
-  } catch (err) {
-    viewer.innerHTML = "<p>Error: " + err + "</p>";
-  }
-}
-</script>
+    function makeProxyUrl(url){
+      return 'https://corsproxy.io/?url=' + encodeURIComponent(url);
+    }
 
+    var frm = qs('frm');
+    var urlInput = qs('url');
+    var methodSelect = qs('method');
+    var respPre = qs('resp');
+    var meta = qs('meta');
+    var err = qs('error');
+    var previewWrap = qs('previewWrap');
+    var preview = qs('preview');
+    var showPreviewCheckbox = qs('showPreviewCheckbox');
+
+    frm.addEventListener('submit', function(ev){
+      ev.preventDefault();
+      err.style.display = 'none';
+      respPre.textContent = '(loading...)';
+      previewWrap.style.display = 'none';
+
+      var target = urlInput.value.trim();
+      if(!target){
+        showError('Please enter a URL to fetch.');
+        return;
+      }
+
+      // Ensure URL seems valid — basic check
+      try{ new URL(target); } catch(e){ showError('Invalid URL. Include https://'); return; }
+
+      var proxy = makeProxyUrl(target);
+
+      meta.textContent = 'Requesting: ' + target + ' (via corsproxy.io) — method: ' + methodSelect.value;
+
+      fetch(proxy, { method: methodSelect.value })
+        .then(function(res){
+          var ctype = res.headers.get('content-type') || '';
+          meta.textContent += ' | content-type: ' + ctype;
+          return res.text().then(function(text){
+            // If JSON, pretty print
+            if(ctype.indexOf('application/json') !== -1){
+              try{ respPre.textContent = JSON.stringify(JSON.parse(text), null, 2); }
+              catch(e){ respPre.textContent = text; }
+            } else if(ctype.indexOf('text/html') !== -1){
+              respPre.textContent = text;
+              if(showPreviewCheckbox.checked){
+                var safe = sanitizeHtml(text);
+                // Use srcdoc so no additional network load goes through local origin
+                preview.setAttribute('srcdoc', safe);
+                previewWrap.style.display = '';
+              }
+            } else {
+              respPre.textContent = text;
+            }
+          });
+        })
+        .catch(function(e){ showError('Fetch error: ' + (e && e.message ? e.message : e)); });
+    });
+
+    function showError(msg){
+      err.style.display = '';
+      err.textContent = msg;
+      respPre.textContent = '(error)';
+    }
+
+    // Toggle preview visibility if checkbox changed
+    showPreviewCheckbox.addEventListener('change', function(){
+      if(!showPreviewCheckbox.checked){ previewWrap.style.display = 'none'; }
+      else if(respPre.textContent && respPre.textContent !== '(response body will appear here)' && respPre.textContent !== '(loading...)' && respPre.textContent !== '(error)'){
+        // attempt to create preview only if last response was HTML
+        try{
+          var txt = respPre.textContent;
+          // naive check: if string contains <html or <body
+          if(txt.indexOf('<') !== -1){
+            preview.setAttribute('srcdoc', sanitizeHtml(txt));
+            previewWrap.style.display = '';
+          }
+        }catch(e){/* ignore */}
+      }
+    });
+
+    // Optional: allow pressing Enter to fetch when focus is in URL box
+    urlInput.addEventListener('keydown', function(e){ if(e.key === 'Enter'){ e.preventDefault(); frm.dispatchEvent(new Event('submit')); } });
+  </script>
 </body>
 </html>
