@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>WebOS — macOS-like (No React)</title>
+  <style>
+    :root{
+      --menubar-h:40px;
+      --accent:#0ea5a4;
+    }
+    html,body{height:100%;margin:0;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,'Helvetica Neue',Arial}
+    body{background:linear-gradient(180deg,#071425 0%, #051025 60%);overflow:hidden;color:#111}
+
+    /* Menu bar */
+    .menubar{position:fixed;top:0;left:0;right:0;height:var(--menubar-h);display:flex;align-items:center;padding:0 14px;backdrop-filter:blur(6px);background:rgba(255,255,255,0.03);color:#e6eef7;z-index:999}
+    .menubar .left{display:flex;gap:10px;align-items:center}
+    .traffic{width:12px;height:12px;border-radius:50%;display:inline-block}
+    .traffic.red{background:#ff5f57}
+    .traffic.yellow{background:#ffbd2e}
+    .traffic.green{background:#28c940}
+    .menubar .center{flex:1;text-align:center;font-weight:600}
+    .menubar .right{font-size:13px}
+
+    /* Desktop icons */
+    .desktop{position:absolute;inset:var(--menubar-h) 0 0 0;padding:20px}
+    .icons{display:flex;flex-direction:column;gap:18px}
+    .icon{width:72px;cursor:pointer;text-align:center;color:#cfe8ff}
+    .icon .thumb{width:56px;height:56px;border-radius:12px;background:linear-gradient(180deg,#0ea5a4,#036b66);display:flex;align-items:center;justify-content:center;font-weight:700}
+    .icon span{display:block;font-size:12px;margin-top:8px}
+
+    /* Dock */
+    .dock{position:fixed;bottom:18px;left:50%;transform:translateX(-50%);background:rgba(255,255,255,0.04);padding:8px 12px;border-radius:14px;display:flex;gap:10px;align-items:center;backdrop-filter:blur(6px);z-index:999}
+    .dock .dock-item{width:56px;height:56px;border-radius:10px;background:#fff2;display:flex;align-items:center;justify-content:center;color:white}
+
+    /* Window */
+    .window{position:absolute;background:white;border-radius:8px;box-shadow:0 10px 30px rgba(2,6,23,0.6);overflow:hidden;border:1px solid rgba(0,0,0,0.06);display:flex;flex-direction:column}
+    .title{height:36px;background:linear-gradient(#ffffffee,#ffffffcc);display:flex;align-items:center;padding:0 8px;cursor:grab;user-select:none}
+    .title .dots{display:flex;gap:8px;align-items:center}
+    .dot{width:12px;height:12px;border-radius:50%}
+    .dot.red{background:#ff5f57}
+    .dot.yellow{background:#ffbd2e}
+    .dot.green{background:#28c940}
+    .title .txt{flex:1;text-align:center;font-weight:600}
+    .controls{display:flex;gap:6px}
+    .controls button{border:none;background:transparent;cursor:pointer}
+
+    .content{flex:1;min-height:80px}
+    .resizer{position:absolute;right:6px;bottom:6px;width:14px;height:14px;cursor:se-resize}
+    iframe{width:100%;height:100%;border:0;background:white}
+
+    /* small helpers */
+    .hidden{display:none}
+
+    /* Make sure iframes can be focusable and visible */
+    .window.minimized{transform:scale(0.98);opacity:0.8}
+  </style>
+</head>
+<body>
+  <div class="menubar">
+    <div class="left">
+      <span class="traffic red" title="close"></span>
+      <span class="traffic yellow" title="minimize"></span>
+      <span class="traffic green" title="maximize"></span>
+    </div>
+    <div class="center">WebOS — macOS-like Desktop</div>
+    <div class="right" id="clock">--:--</div>
+  </div>
+
+  <div class="desktop">
+    <div class="icons">
+      <div class="icon" data-app="app-dynamix">
+        <div class="thumb">D</div>
+        <span>Dynamix</span>
+      </div>
+      <div class="icon" data-app="app-home">
+        <div class="thumb">H</div>
+        <span>Home</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="dock" id="dock">
+    <div class="dock-item" data-app="app-dynamix">Dynamix</div>
+    <div class="dock-item" data-app="app-home">Home</div>
+  </div>
+
+  <!-- Window templates will be created dynamically by JS -->
+
+  <script>
+    // Basic window manager (no frameworks)
+    const apps = {
+      'app-dynamix': { title: 'Dynamix', src: 'https://dev-xomxo.vercel.app/' },
+      'app-home': { title: 'Home', src: 'https://dev-xomxo.vercel.app/home' }
+    };
+
+    let zIndex = 10;
+
+    function updateClock(){
+      const el = document.getElementById('clock');
+      el.textContent = new Date().toLocaleString();
+    }
+    setInterval(updateClock,1000); updateClock();
+
+    function createWindow(appId){
+      if(document.getElementById(appId)){
+        // bring to front
+        const ex = document.getElementById(appId);
+        bringToFront(ex);
+        return;
+      }
+      const cfg = apps[appId];
+      const win = document.createElement('div');
+      win.className = 'window';
+      win.id = appId;
+      win.style.width = '1000px';
+      win.style.height = '640px';
+      win.style.top = '80px';
+      win.style.left = (Math.random()*200 + 120) + 'px';
+      win.style.zIndex = ++zIndex;
+
+      // title
+      const title = document.createElement('div'); title.className='title';
+      const dots = document.createElement('div'); dots.className='dots';
+      const r = document.createElement('div'); r.className='dot red';
+      const y = document.createElement('div'); y.className='dot yellow';
+      const g = document.createElement('div'); g.className='dot green';
+      dots.appendChild(r);dots.appendChild(y);dots.appendChild(g);
+      const txt = document.createElement('div'); txt.className='txt'; txt.textContent = cfg.title;
+      const ctrls = document.createElement('div'); ctrls.className='controls';
+      const closeBtn = document.createElement('button'); closeBtn.innerHTML='✕';
+      const minBtn = document.createElement('button'); minBtn.innerHTML='🗕';
+      const maxBtn = document.createElement('button'); maxBtn.innerHTML='▣';
+      ctrls.appendChild(minBtn); ctrls.appendChild(maxBtn); ctrls.appendChild(closeBtn);
+      title.appendChild(dots); title.appendChild(txt); title.appendChild(ctrls);
+      win.appendChild(title);
+
+      // content
+      const content = document.createElement('div'); content.className='content';
+      const iframe = document.createElement('iframe'); iframe.src = cfg.src; iframe.setAttribute('allow','clipboard-read; clipboard-write;');
+      content.appendChild(iframe);
+      win.appendChild(content);
+
+      // resizer
+      const res = document.createElement('div'); res.className='resizer'; win.appendChild(res);
+
+      document.body.appendChild(win);
+
+      // events
+      title.addEventListener('mousedown', (e)=>startDrag(e, win));
+      r.addEventListener('click', ()=>closeWindow(win));
+      closeBtn.addEventListener('click', ()=>closeWindow(win));
+      minBtn.addEventListener('click', ()=>minimizeWindow(win));
+      maxBtn.addEventListener('click', ()=>maximizeWindow(win));
+      win.addEventListener('mousedown', ()=>bringToFront(win));
+      res.addEventListener('mousedown',(e)=>startResize(e,win));
+
+      // make iframe sandbox-friendly: we still load cross-origin URL in iframe — keep policy simple
+      return win;
+    }
+
+    function bringToFront(winEl){
+      zIndex++; winEl.style.zIndex = zIndex;
+    }
+
+    function closeWindow(winEl){
+      winEl.remove();
+    }
+    function minimizeWindow(winEl){
+      winEl.style.display = 'none';
+      // add a taskbar icon to restore
+      const restoreId = 'task-'+winEl.id;
+      if(document.getElementById(restoreId)) return;
+      const btn = document.createElement('div'); btn.id = restoreId; btn.className='dock-item'; btn.textContent = winEl.querySelector('.txt').textContent;
+      document.getElementById('dock').appendChild(btn);
+      btn.addEventListener('click', ()=>{
+        winEl.style.display = '';
+        btn.remove();
+        bringToFront(winEl);
+      });
+    }
+    function maximizeWindow(winEl){
+      if(winEl.dataset.max === '1'){
+        // restore
+        winEl.style.width = winEl.dataset.prevW;
+        winEl.style.height = winEl.dataset.prevH;
+        winEl.style.top = winEl.dataset.prevT;
+        winEl.style.left = winEl.dataset.prevL;
+        delete winEl.dataset.max;
+      } else {
+        winEl.dataset.prevW = winEl.style.width; winEl.dataset.prevH = winEl.style.height; winEl.dataset.prevT = winEl.style.top; winEl.dataset.prevL = winEl.style.left;
+        winEl.style.top = '40px'; winEl.style.left = '0'; winEl.style.width = '100%'; winEl.style.height = 'calc(100% - 58px)'; winEl.dataset.max = '1';
+      }
+      bringToFront(winEl);
+    }
+
+    // Dragging
+    function startDrag(e, winEl){
+      if(e.button !== 0) return; // left only
+      e.preventDefault(); bringToFront(winEl);
+      const startX = e.clientX; const startY = e.clientY;
+      const rect = winEl.getBoundingClientRect();
+      const startLeft = rect.left; const startTop = rect.top;
+      function move(ev){
+        winEl.style.left = (startLeft + (ev.clientX - startX)) + 'px';
+        winEl.style.top = (startTop + (ev.clientY - startY)) + 'px';
+      }
+      function up(){ window.removeEventListener('mousemove',move); window.removeEventListener('mouseup',up); }
+      window.addEventListener('mousemove',move); window.addEventListener('mouseup',up);
+    }
+
+    // Resizing
+    function startResize(e, winEl){
+      e.preventDefault(); e.stopPropagation(); bringToFront(winEl);
+      const startX = e.clientX; const startY = e.clientY;
+      const rect = winEl.getBoundingClientRect(); const startW = rect.width; const startH = rect.height;
+      function move(ev){
+        winEl.style.width = Math.max(320, startW + (ev.clientX - startX)) + 'px';
+        winEl.style.height = Math.max(240, startH + (ev.clientY - startY)) + 'px';
+      }
+      function up(){ window.removeEventListener('mousemove',move); window.removeEventListener('mouseup',up); }
+      window.addEventListener('mousemove',move); window.addEventListener('mouseup',up);
+    }
+
+    // Wire icons and dock
+    document.querySelectorAll('[data-app]').forEach(el=>{
+      el.addEventListener('dblclick', ()=>createWindow(el.getAttribute('data-app')));
+      el.addEventListener('click', ()=>{
+        // single-click opens too
+        createWindow(el.getAttribute('data-app'));
+      });
+    });
+
+    // keyboard: Cmd+1 / Cmd+2 to open apps (Cmd == Meta)
+    window.addEventListener('keydown',(e)=>{
+      if(e.metaKey && !e.shiftKey){
+        if(e.key === '1') createWindow('app-dynamix');
+        if(e.key === '2') createWindow('app-home');
+      }
+    });
+
+    // Prevent desktop text selection
+    document.body.addEventListener('mousedown',(e)=>{ if(e.target.classList && e.target.classList.contains('thumb')) e.preventDefault(); });
+
+    // On load, create a small welcome window
+    window.addEventListener('load', ()=>{
+      createWindow('app-home');
+    });
+  </script>
+</body>
+</html>
