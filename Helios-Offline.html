@@ -2995,11 +2995,11 @@ htmlText = sanitizeHtmlText(await fetchWithProxy(proxy));
         hideSpinner(tab);
         content.innerHTML = `
             <div style="color: #ff6161; padding: 20px; text-align: center;">
-                <h2>Error loading content</h2>
-                <p>Unable to fetch the requested content. Please try again later.</p>
-                <p>sorry :(</p>
+                <h2>error</h2>
+                <p>the browser has not been able to display this page. sorry and</p>
+                <p>sorry again. :(</p>
                 <details>
-                    <summary>Error details</summary>
+                    <summary>this is all we could find of this weird case.</summary>
                     <pre>${errors.join('\n')}</pre>
                 </details>
             </div>
