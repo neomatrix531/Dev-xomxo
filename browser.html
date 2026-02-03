@@ -1,17 +1,133 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Playwright Browser Connection</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Proxy Browser with iframe</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin:0; font-family: Arial; display:flex; flex-direction:column; height:100vh; background:#121212; color:white; }
+  header { display:flex; padding:6px; gap:5px; background:#1f1f1f; align-items:center; }
+  input { flex:1; padding:6px; border-radius:4px; border:none; background:#2c2c2c; color:white; }
+  button { padding:6px 10px; border:none; border-radius:4px; background:#0078ff; color:white; cursor:pointer; }
+  #tabs { display:flex; overflow-x:auto; background:#1b1b1b; padding:5px; }
+  .tab { padding:5px 10px; margin-right:5px; background:#2b2b2b; border-radius:4px; cursor:pointer; white-space:nowrap; }
+  .tab.active { background:#0078ff; }
+  iframe { flex:1; width:100%; border:none; background:white; }
+</style>
 </head>
 <body>
-  <h1>BROWSER</h1>
-  <button id="connect">Connect to Browser</button>
 
-  <pre id="output"></pre>
+<div id="tabs"></div>
 
-  
-  <script type="module" src="browser.js"></script>
+<header>
+  <button onclick="goBack()">⏪</button>
+  <button onclick="goForward()">⏩</button>
+  <button onclick="refreshTab()">🔄</button>
+  <input id="urlInput" placeholder="Enter URL and press Enter" onkeydown="if(event.key==='Enter') loadPage()">
+  <button onclick="loadPage()">Go</button>
+  <button onclick="addTab()">➕</button>
+</header>
+
+<iframe id="viewer"></iframe>
+
+<script>
+const proxy = 'https://raspy-darkness-1ab8.epjack2.workers.dev/?url=';
+const iframe = document.getElementById('viewer');
+const urlInput = document.getElementById('urlInput');
+const tabsDiv = document.getElementById('tabs');
+
+let tabs = [];
+let currentTab = null;
+
+function normalizeUrl(url) {
+  if (!url.startsWith('http')) return 'https://' + url;
+  return url;
+}
+
+function addTab(url='https://example.com') {
+  const tab = {id: Date.now(), url, history:[url], position:0};
+  tabs.push(tab);
+  setActiveTab(tab.id);
+  renderTabs();
+  loadTab(tab);
+}
+
+function setActiveTab(id) {
+  currentTab = tabs.find(t => t.id === id);
+  renderTabs();
+  if(currentTab) loadTab(currentTab);
+}
+
+function renderTabs() {
+  tabsDiv.innerHTML = '';
+  tabs.forEach(tab => {
+    const el = document.createElement('div');
+    el.className = 'tab' + (tab.id===currentTab?.id?' active':'');
+    el.innerText = tab.url.replace(/^https?:\/\//,'');
+    el.onclick = () => setActiveTab(tab.id);
+    tabsDiv.appendChild(el);
+  });
+}
+
+function loadPage() {
+  if(!currentTab) return;
+  const url = normalizeUrl(urlInput.value);
+  currentTab.url = url;
+  currentTab.history.push(url);
+  currentTab.position = currentTab.history.length-1;
+  loadTab(currentTab);
+  renderTabs();
+}
+
+function loadTab(tab) {
+  urlInput.value = tab.url;
+  iframe.src = proxy + encodeURIComponent(tab.url);
+
+  // Wait for iframe to load and modify its content
+  iframe.onload = () => {
+    try {
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+
+      // Optional: inject custom CSS
+      const style = doc.createElement('style');
+      style.innerHTML = `
+        body { font-family: Arial, sans-serif !important; background:white !important; }
+        img { max-width:100% !important; height:auto !important; }
+      `;
+      doc.head.appendChild(style);
+
+      // Make all links open in a new tab
+      const links = doc.querySelectorAll('a');
+      links.forEach(a => a.setAttribute('target', '_blank'));
+    } catch(e) {
+      // Some sites may block this due to CORS, in which case links/default CSS may not work
+      console.warn('Could not modify iframe content:', e);
+    }
+  };
+}
+
+function goBack() {
+  if(!currentTab || currentTab.position<=0) return;
+  currentTab.position--;
+  currentTab.url = currentTab.history[currentTab.position];
+  loadTab(currentTab);
+}
+
+function goForward() {
+  if(!currentTab || currentTab.position>=currentTab.history.length-1) return;
+  currentTab.position++;
+  currentTab.url = currentTab.history[currentTab.position];
+  loadTab(currentTab);
+}
+
+function refreshTab() {
+  if(currentTab) loadTab(currentTab);
+}
+
+// start with one default tab
+addTab('https://example.com');
+</script>
+
 </body>
 </html>
