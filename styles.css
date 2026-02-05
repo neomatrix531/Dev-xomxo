@@ -1,0 +1,159 @@
+:root{
+  --bg:#0f1720;
+  --panel:#0b1220;
+  --accent:#ffb64d;
+  --muted:#9aa4b2;
+  --glass: rgba(255,255,255,0.03);
+  --radius:12px;
+  --touch:48px;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+*{box-sizing:border-box}
+html,body,#desktop{height:100%;margin:0;background:
+  linear-gradient(180deg, rgba(15,23,32,0.6), rgba(7,16,26,0.6)),
+  url('/untitled.png') center/cover no-repeat;
+  color:#e6eef6;touch-action:manipulation;
+
+/* Hide native cursor so we can render our custom follower PNG */
+cursor: none;
+}
+#desktop{position:relative;overflow:hidden}
+
+/* Dock */
+#dock{
+  position: absolute;
+  left:12px;
+  bottom:12px;
+  display:flex;
+  gap:12px;
+  align-items:center;
+  padding:8px;
+  background:var(--glass);
+  border-radius:16px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+.app-icon{
+  background:transparent;
+  border:0;
+  padding:8px;
+  display:flex;
+  gap:8px;
+  align-items:center;
+  color:var(--muted);
+  border-radius:12px;
+  transition:transform .12s ease, background .12s ease;
+  min-width:var(--touch);
+  min-height:var(--touch);
+  /* Ensure the native cursor is hidden when over app icons so only the custom PNG follower is visible */
+  cursor: none !important;
+  /* allow normal touch/pointer gestures on app icons so clicks/taps register reliably */
+  touch-action: auto;
+}
+
+
+.app-icon:active{transform:translateY(2px)}
+.app-icon:hover{background:rgba(255,255,255,0.02)}
+.icon-sun{width:32px;height:32px;flex-shrink:0}
+.icon-label{display:none;font-size:12px;color:var(--muted)}
+
+/* Window */
+.window {
+  position:absolute;
+  width:92%;
+  height:76%;
+  left:4%;
+  top:8%;
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.1));
+  border-radius:14px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  overflow:hidden;
+  display:flex;
+  flex-direction:column;
+  touch-action: none;
+  border:1px solid rgba(255,255,255,0.03);
+}
+
+/* Titlebar */
+.titlebar{
+  height:46px;
+  display:flex;
+  align-items:center;
+  padding:0 10px;
+  gap:8px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.04));
+  user-select:none;
+  -webkit-user-select:none;
+  flex-shrink:0;
+  /* ensure titlebar accepts pointer/touch gestures normally */
+  touch-action: auto;
+}
+.controls{
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.ctrl{
+  /* small visible dot */
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  /* larger touch area for reliability on touch devices */
+  padding:8px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  /* keep native cursor hidden over controls so only the custom PNG is visible */
+  cursor: none !important;
+  touch-action:manipulation;
+}
+.ctrl.close{background:#ff5c5c}
+.ctrl.min{background:#ffbf57}
+.ctrl.max{background:#2cd777}
+.title{
+  flex:1;
+  text-align:center;
+  font-size:13px;
+  color:var(--muted);
+}
+
+/* Content */
+.content{
+  flex:1;
+  background:#06090c;
+  position:relative;
+}
+.content iframe{
+  width:100%;
+  height:100%;
+  border:0;
+  display:block;
+  background:white;
+  /* Force the native cursor off over iframe elements so our custom follower remains visible */
+  cursor: none !important;
+  /* keep iframe behind the floating follower */
+  z-index: 0;
+}
+
+/* System bar */
+#sysbar{
+  position:absolute;
+  right:12px;
+  bottom:12px;
+  color:var(--muted);
+  font-size:13px;
+  padding:8px 12px;
+  border-radius:12px;
+  background:var(--glass);
+  backdrop-filter: blur(6px);
+}
+
+/* responsive touch-friendly */
+@media (max-width:640px){
+  .window{width:96%;height:88%;left:2%;top:5%;border-radius:10px}
+  .titlebar{height:52px;padding:0 12px}
+  .icon-label{display:none}
+  .app-icon{min-width:44px;min-height:44px;padding:6px}
+  .title{font-size:15px}
+}
