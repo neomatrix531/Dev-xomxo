@@ -2,125 +2,59 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <title>Helios WebOS</title>
-
-  <!-- Import map for external libs (ready if later needed). Use esm.sh per guidelines. -->
-  <script type="importmap">
-  {
-    "imports": {
-      "nipplejs": "https://esm.sh/nipplejs@0.9.0"
-    }
-  }
-  </script>
-
-  <link rel="stylesheet" href="styles.css" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Web OS Dock</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div id="desktop">
-    <!-- Dock -->
-    <div id="dock">
-      <button class="app-icon" id="open-helios" aria-label="Open Helios Browser">
-        <svg viewBox="0 0 64 64" class="icon-sun" aria-hidden>
-          <circle cx="32" cy="32" r="12" fill="#ffb64d"></circle>
-          <g stroke="#ffb64d" stroke-width="3" stroke-linecap="round">
-            <line x1="32" y1="4" x2="32" y2="14"></line>
-            <line x1="32" y1="50" x2="32" y2="60"></line>
-            <line x1="4" y1="32" x2="14" y2="32"></line>
-            <line x1="50" y1="32" x2="60" y2="32"></line>
-            <line x1="10" y1="10" x2="18" y2="18"></line>
-            <line x1="46" y1="46" x2="54" y2="54"></line>
-            <line x1="10" y1="54" x2="18" y2="46"></line>
-            <line x1="46" y1="18" x2="54" y2="10"></line>
-          </g>
-        </svg>
-        <span class="icon-label">Helios</span>
-      </button>
+    <div id="windows">
+      <div class="window hidden" data-app="helios">
+        <div class="title">
+          <div class="traffic">
+            <button class="traffic-btn red" aria-label="Close"></button>
+            <button class="traffic-btn yellow" aria-label="Minimize"></button>
+            <button class="traffic-btn green" aria-label="Maximize"></button>
+          </div>
+          <img class="title-icon" src="https://helios-browser.vercel.app/favicon.ico" alt="Helios icon" />
+          <span class="title-text">Helios Browser</span>
+        </div>
+        <div class="content">
+          <iframe class="app-frame" src="https://dev-xomxo.vercel.app/Helios-Offline.html" title="Helios Browser" sandbox="allow-scripts allow-forms allow-same-origin allow-popups"></iframe>
+        </div>
+      </div>
 
-
-
-      <button class="app-icon" id="open-penguin" aria-label="Open PenguinMod - Intranet">
-        <!-- simple penguin glyph -->
-        <svg viewBox="0 0 64 64" class="icon-penguin" aria-hidden>
-          <circle cx="32" cy="32" r="14" fill="#0ea5a4" opacity="0.08"></circle>
-          <path d="M32 16c6 0 10 4 10 10s-4 14-10 14-10-8-10-14 4-10 10-10z" fill="#fff"/>
-          <ellipse cx="32" cy="36" rx="6" ry="8" fill="#0f1720"/>
-        </svg>
-        <span class="icon-label">PenguinMod</span>
-      </button>
-
-      <button class="app-icon" id="open-terminal" aria-label="Open Terminal">
-        <!-- simple terminal glyph -->
-        <svg viewBox="0 0 64 64" class="icon-terminal" aria-hidden>
-          <rect x="8" y="12" width="48" height="40" rx="4" fill="#0b1220" stroke="#2dd4bf" stroke-width="2"/>
-          <path d="M20 28l8-6" stroke="#2dd4bf" stroke-width="3" stroke-linecap="round" fill="none"/>
-          <rect x="32" y="28" width="10" height="2" rx="1" fill="#2dd4bf"/>
-        </svg>
-        <span class="icon-label">Terminal</span>
-      </button>
-
-      <button class="app-icon" id="open-nautilus" aria-label="Open Nautilus OS VM">
-        <!-- simple rocket/ship glyph for Nautilus -->
-        <svg viewBox="0 0 64 64" class="icon-nautilus" aria-hidden>
-          <defs>
-            <linearGradient id="g-naut" x1="0" x2="1" y1="0" y2="1">
-              <stop offset="0" stop-color="#34d399"/>
-              <stop offset="1" stop-color="#10b981"/>
-            </linearGradient>
-          </defs>
-          <path d="M32 10c6 0 12 6 12 12s-6 18-12 18-12-12-12-18 6-12 12-12z" fill="url(#g-naut)"/>
-          <circle cx="32" cy="32" r="4" fill="#0b1220" opacity="0.12"/>
-        </svg>
-        <span class="icon-label">Nautilus</span>
-      </button>
-
-      <button class="app-icon" id="open-devbox" aria-label="Open DevBox">
-        <!-- simple terminal/box glyph for DevBox -->
-        <svg viewBox="0 0 64 64" class="icon-devbox" aria-hidden>
-          <rect x="10" y="14" width="44" height="36" rx="4" fill="#0b1220" stroke="#60a5fa" stroke-width="2"/>
-          <path d="M20 28h24M20 36h24" stroke="#60a5fa" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <span class="icon-label">DevBox</span>
-      </button>
-
-      <button class="app-icon" id="open-daedal" aria-label="Open DaedalOS">
-        <!-- simple hexagon glyph for DaedalOS -->
-        <svg viewBox="0 0 64 64" class="icon-daedal" aria-hidden>
-          <polygon points="32,8 50,20 50,44 32,56 14,44 14,20" fill="#06b6d4" opacity="0.12"/>
-          <path d="M32 16 L44 24 L44 40 L32 48 L20 40 L20 24 Z" fill="#06b6d4"/>
-        </svg>
-        <span class="icon-label">DaedalOS</span>
-      </button>
-
-      <button class="app-icon" id="open-pangbrowser" aria-label="Open PangBrowser - The Ultimate browser built for the web">
-        <!-- simple globe glyph for PangBrowser -->
-        <svg viewBox="0 0 64 64" class="icon-pang" aria-hidden>
-          <circle cx="32" cy="32" r="20" fill="#60a5fa" opacity="0.12"></circle>
-          <path d="M12 32h40M32 12v40M20 20c8 8 16 8 24 0M20 44c8-8 16-8 24 0" stroke="#60a5fa" stroke-width="2" stroke-linecap="round" fill="none"/>
-        </svg>
-        <span class="icon-label">PangBrowser</span>
-      </button>
-
-      <button class="app-icon" id="open-settings" aria-label="Open Settings">
-        <!-- gear glyph -->
-        <svg viewBox="0 0 64 64" class="icon-settings" aria-hidden>
-          <circle cx="32" cy="32" r="10" fill="#fde68a"></circle>
-          <path d="M32 16v-6M32 54v6M48 32h6M10 32H4M46 18l4-4M14 50l-4 4M46 46l4 4M14 14l-4-4" stroke="#f59e0b" stroke-width="2" stroke-linecap="round" fill="none"/>
-        </svg>
-        <span class="icon-label">Settings</span>
-      </button>
-
+      <div class="window hidden" data-app="penguinmod">
+        <div class="title">
+          <div class="traffic">
+            <button class="traffic-btn red" aria-label="Close"></button>
+            <button class="traffic-btn yellow" aria-label="Minimize"></button>
+            <button class="traffic-btn green" aria-label="Maximize"></button>
+          </div>
+          <img class="title-icon" src="https://penguinmod.com/favicon.ico" alt="PenguinMod icon" />
+          <span class="title-text">PenguinMod</span>
+        </div>
+        <div class="content">
+          <iframe class="app-frame" src="https://penguinmod.com" title="PenguinMod" sandbox="allow-scripts allow-forms allow-same-origin allow-popups"></iframe>
+        </div>
+      </div>
     </div>
 
-    <!-- Window template / app container -->
-    <div id="window-container" aria-live="polite"></div>
-
-    <!-- Minimal system bar -->
-    <div id="sysbar" role="status">
-      <div id="time"></div>
+    <div id="dock-wrap">
+      <div id="dock">
+        <button class="dock-item" data-app="helios" aria-label="Helios Browser">
+          <img src="https://helios-browser.vercel.app/favicon.ico" alt="Helios">
+        </button>
+        <button class="dock-item" data-app="penguinmod" aria-label="PenguinMod">
+          <img src="https://penguinmod.com/favicon.ico" alt="PenguinMod">
+        </button>
+      </div>
     </div>
   </div>
 
-  <script src="app.js" type="module"></script>
+  <!-- custom cursor overlays everything (positioned via JS) -->
+  <img id="custom-cursor" src="cursor.png" alt="" aria-hidden="true" />
+
+  <script type="module" src="app.js"></script>
 </body>
 </html>

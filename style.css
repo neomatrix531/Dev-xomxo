@@ -1,0 +1,258 @@
+:root{
+  --dock-height: 84px;
+  --dock-bg: rgba(255,255,255,0.06);
+  --dock-blur: 10px;
+  --accent: #0a84ff;
+}
+
+*{box-sizing:border-box}
+html,body,#desktop{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:#fff}
+body{
+  background:
+    radial-gradient(800px 400px at 10% 20%, rgba(10,10,10,0.6), transparent 15%),
+    linear-gradient(180deg,#0f1720 0%, #071019 100%);
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+/* Windows (sample app windows) */
+#windows{position:absolute;inset:0;pointer-events:none}
+.window{
+  position:absolute;
+  left:50%;
+  top:30%;
+  transform:translate(-50%,-10%);
+  width:72%;
+  max-width:720px;
+  min-width:320px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.04);
+  box-shadow:0 8px 30px rgba(2,6,23,0.6);
+  overflow:hidden;
+  pointer-events:auto;
+  transition:transform .18s ease, opacity .18s ease;
+  /* ensure positioned by left/top when dragged */
+}
+.window.hidden{opacity:0;transform:translate(-50%,-30%) scale(.98);pointer-events:none}
+.window .title{
+  height:44px;
+  display:flex;
+  align-items:center;
+  padding:0 12px;
+  backdrop-filter: blur(6px);
+  border-bottom:1px solid rgba(255,255,255,0.02);
+  font-weight:600;
+  cursor:grab; /* indicate draggable header */
+  user-select:none;
+}
+.window{
+  position:absolute;
+  left:50%;
+  top:30%;
+  transform:translate(-50%,-10%);
+  width:72%;
+  max-width:720px;
+  min-width:320px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.03), rgba(255,255,255,0.02));
+  border-radius:12px;
+  border:1px solid rgba(255,255,255,0.04);
+  box-shadow:0 8px 30px rgba(2,6,23,0.6);
+  overflow:hidden;
+  pointer-events:auto;
+  transition:transform .18s ease, opacity .18s ease;
+  /* ensure positioned by left/top when dragged */
+  display: flex;
+  flex-direction: column;
+  min-height: 220px; /* ensure a reasonable minimum height */
+}
+.window .content{
+  padding:0;
+  color:#dfe7f0;
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+}
+.window .content .app-frame{
+  width:100%;
+  height:100%;
+  border:0;
+  border-radius:0;
+  background:#fff;
+  display:block;
+  flex: 1 1 auto;
+}
+@media (max-width:700px){
+  /* smaller windows on small screens remain flexible */
+  .window{ width:94%; left:3%; top:20%; }
+  .window .content .app-frame{ height:100%; }
+}
+
+/* dragging state */
+.window.dragging{transition:none; cursor:grabbing; transform:none}
+
+/* Dock container */
+#dock-wrap{
+  position:fixed;
+  left:0; right:0;
+  bottom:24px;
+  display:flex;
+  justify-content:center;
+  pointer-events:none; /* children will re-enable */
+}
+
+#dock{
+  pointer-events:auto;
+  height:var(--dock-height);
+  padding:10px 16px;
+  display:flex;
+  align-items:end;
+  gap:14px;
+  border-radius:18px;
+  background:var(--dock-bg);
+  backdrop-filter: blur(var(--dock-blur));
+  box-shadow: 0 10px 30px rgba(2,6,23,0.6);
+  border: 1px solid rgba(255,255,255,0.04);
+}
+
+/* Dock items */
+.dock-item{
+  --size:56px;
+  --scale:1;
+  border: none;
+  background: transparent;
+  width: calc(var(--size) * var(--scale));
+  height: calc(var(--size) * var(--scale));
+  padding: 6px;
+  border-radius: 12px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  transition: width .12s ease, height .12s ease, transform .12s ease;
+  transform-origin: center bottom;
+  cursor:pointer;
+  outline: none;
+  box-shadow: 0 6px 14px rgba(2,6,23,0.4);
+}
+.dock-item img{width:100%;height:100%;object-fit:contain;border-radius:8px}
+
+/* subtle focus ring */
+.dock-item:focus{box-shadow:0 6px 18px rgba(10,132,255,0.22);transform:translateY(-4px)}
+
+/* default small hover scale for devices that support :hover */
+@media (hover:hover) and (pointer: fine) {
+  .dock-item:hover{transform: translateY(-8px) scale(1.08)}
+}
+
+/* mac-like magnify: we use JS to set CSS custom property --scale on items.
+   The scale is applied to size via CSS variables for smooth behavior */
+
+/* Traffic light buttons in window title (mac-like) */
+.title{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+.traffic{
+  display:flex;
+  gap:8px;
+  padding-left:6px;
+  align-items:center;
+  height:100%;
+}
+.traffic-btn{
+  width:12px;
+  height:12px;
+  border-radius:50%;
+  border: none;
+  padding:0;
+  margin:0;
+  box-shadow: 0 1px 0 rgba(255,255,255,0.05) inset;
+  cursor:default;
+  outline:none;
+  flex:0 0 auto;
+}
+/* colors */
+.traffic-btn.red{ background:#ff5f56; }
+.traffic-btn.yellow{ background:#ffbd2e; }
+.traffic-btn.green{ background:#27c93f; }
+
+/* hover ring for accessibility */
+.traffic-btn:focus{ box-shadow: 0 0 0 3px rgba(10,132,255,0.12); }
+
+/* keep the text title centered and draggable area after the traffic buttons */
+.title-text{
+  font-weight:600;
+  user-select:none;
+  cursor:grab;
+}
+
+/* ensure drag cursor stays consistent when using the title area */
+.window .title{ cursor:grab; }
+
+/* small spacing tweak so title text doesn't overflow into controls */
+.window .title .title-text{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* small icon in title bar */
+.title-icon{
+  width:18px;
+  height:18px;
+  border-radius:4px;
+  margin-left:8px;
+  margin-right:8px;
+  flex:0 0 auto;
+  object-fit:contain;
+}
+
+/* ensure traffic buttons don't trigger the header grab cursor visually */
+.traffic-btn { cursor: default; pointer-events:auto; }
+
+/* When a window is maximized, remove transform-based centering and make it fill the viewport.
+   This ensures the green traffic button creates a true fullscreen-like window while still
+   leaving a small padding handled by JS when toggling maximize. */
+.window.maximized{
+  left: 0 !important;
+  top: 0 !important;
+  transform: none !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  min-width: 0 !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  transition: none !important;
+}
+
+/* Ensure iframe fills maximized window without overflow */
+.window.maximized .content,
+.window.maximized .content .app-frame{
+  height: 100% !important;
+  width: 100% !important;
+  border-radius: 0 !important;
+}
+
+/* custom cursor: hide native cursor and show PNG that follows pointer.
+   pointer-events:none so it doesn't block interactions, and very high z-index
+   so it's visible above iframes and other elements. */
+html, body, #desktop, iframe {
+  cursor: none !important;
+}
+#custom-cursor{
+  position: fixed;
+  left: 0;
+  top: 0;
+  width: 32px;
+  height: 32px;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  /* force the cursor above any stacking/context created by transformed iframes/windows */
+  z-index: 2147483647 !important;
+  will-change: transform, opacity;
+  transition: opacity 120ms linear;
+  opacity: 0;
+  mix-blend-mode: normal;
+  /* ensure it isn't affected by parent isolation or mix-blend surprises */
+  isolation: isolate;
+  -webkit-user-select: none;
+  user-select: none;
+}
