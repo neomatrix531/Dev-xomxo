@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Waterbottle Proxy - Settings</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,200;12..96,400;12..96,600&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            /* @tweakable Primary dark background color */
+            --primary-bg: #0a0a1f;
+            /* @tweakable Secondary dark background color */
+            --secondary-bg: #1a1a3a;
+            /* @tweakable Accent blue color */
+            --accent-blue: #3b82f6;
+            /* @tweakable Light blue accent */
+            --light-blue: #60a5fa;
+            /* @tweakable Glow intensity */
+            --glow-intensity: 0.3;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Bricolage Grotesque', sans-serif;
+            background: var(--primary-bg);
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .rain-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .raindrop {
+            position: absolute;
+            width: 2px;
+            background: linear-gradient(180deg, transparent, var(--light-blue), transparent);
+            opacity: 0.6;
+            animation: fall linear infinite;
+        }
+
+        @keyframes fall {
+            to {
+                transform: translateY(100vh);
+            }
+        }
+
+        .settings-container {
+            background: rgba(26, 26, 58, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(59, 130, 246, 0.2);
+            border-radius: 16px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            position: relative;
+            z-index: 10;
+            box-shadow: 0 8px 32px rgba(30, 58, 138, 0.3);
+            animation: slideIn 0.5s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            background: linear-gradient(45deg, #1e3a8a, #60a5fa, #3b82f6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-align: center;
+            animation: gradient 3s ease infinite;
+        }
+
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #e0e7ff;
+            font-weight: 500;
+        }
+
+        input[type="text"],
+        input[type="color"],
+        input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            background: rgba(26, 26, 58, 0.6);
+            border: 1px solid var(--accent-blue);
+            border-radius: 8px;
+            color: #fff;
+            font-family: inherit;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        input[type="color"]:focus,
+        input[type="file"]:focus {
+            outline: none;
+            border-color: var(--light-blue);
+            box-shadow: 0 0 20px rgba(96, 165, 250, var(--glow-intensity));
+        }
+
+        .checkbox-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 20px 0;
+        }
+
+        .checkbox-container > div {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 10px;
+            background: rgba(26, 26, 58, 0.4);
+            border-radius: 8px;
+            transition: background 0.3s ease;
+        }
+
+        .checkbox-container > div:hover {
+            background: rgba(59, 130, 246, 0.1);
+        }
+
+        input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            accent-color: var(--light-blue);
+            cursor: pointer;
+        }
+
+        button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background: linear-gradient(45deg, #1e3a8a, #60a5fa, #3b82f6);
+            background-size: 200% 200%;
+            border: none;
+            border-radius: 8px;
+            color: white;
+            font-family: inherit;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(96, 165, 250, 0.4);
+            animation: gradient 2s ease infinite;
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .reset-button {
+            background: linear-gradient(45deg, #991b1b, #dc2626, #ef4444);
+        }
+
+        .reset-button:hover {
+            box-shadow: 0 4px 15px rgba(239, 68, 68, 0.4);
+        }
+
+        hr {
+            border: none;
+            height: 1px;
+            background: linear-gradient(90deg, transparent, var(--accent-blue), transparent);
+            margin: 25px 0;
+        }
+
+        .back-link {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: var(--light-blue);
+            text-decoration: none;
+            font-size: 1.2rem;
+            transition: color 0.3s ease;
+        }
+
+        .back-link:hover {
+            color: #e0e7ff;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 25px;
+            background: rgba(26, 26, 58, 0.6);
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 21px;
+            height: 21px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s ease;
+        }
+
+        input:checked + .toggle-slider {
+            transform: translateX(25px);
+            background: var(--light-blue);
+        }
+
+        input:checked ~ .toggle-switch {
+            background: rgba(96, 165, 250, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <audio id="bgAudio" loop>
+        <source src="rain.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="lofiAudio" loop>
+        <source src="lofi-alarm-clock-243766.mp3" type="audio/mpeg">
+    </audio>
+    
+    <div class="rain-container" id="rainContainer"></div>
+    
+    <a href="/" class="back-link">
+        <i class="fas fa-arrow-left"></i> Back to Proxy
+    </a>
+
+    <div class="settings-container">
+        <h1>Settings</h1>
+        
+        <div class="form-group">
+            <label for="backgroundColorPicker">Background Color</label>
+            <input type="color" id="backgroundColorPicker" value="#0a0a1f">
+        </div>
+
+        <div class="form-group">
+            <label>Features</label>
+            <div class="checkbox-container">
+                <div>
+                    <label for="beforeUnloadToggle">Anti-Close Protection</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="beforeUnloadToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div>
+                    <label for="autocloakToggle">Auto about:blank Cloaking</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="autocloakToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+                <div>
+                    <label for="adsToggle">Display Ads</label>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="adsToggle">
+                        <span class="toggle-slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <hr>
+
+        <div class="form-group">
+            <label for="siteTitle">Site Title</label>
+            <input type="text" id="siteTitle" placeholder="Enter custom title">
+        </div>
+
+        <div class="form-group">
+            <label for="siteLogo">Site Favicon</label>
+            <input type="file" id="siteLogo" accept="image/*">
+        </div>
+
+        <button id="saveAppearance">Save Appearance</button>
+
+        <hr>
+
+        <div class="form-group">
+            <label for="panicKey">Panic Key</label>
+            <input type="text" id="panicKey" placeholder="e.g., F1, Escape, Alt+Q">
+        </div>
+
+        <div class="form-group">
+            <label for="panicUrl">Panic URL</label>
+            <input type="text" id="panicUrl" placeholder="https://classroom.google.com">
+        </div>
+
+        <button id="savePanic">Save Panic Settings</button>
+
+        <hr>
+
+        <button id="resetAppearance" class="reset-button">Reset Appearance</button>
+        <button id="resetPanic" class="reset-button">Reset Panic Settings</button>
+    </div>
+
+    <script>
+        /* @tweakable Rain drop count */
+        const rainDropsCount = 50;
+        /* @tweakable Rain animation speed */
+        const rainSpeed = 1;
+
+        // Audio setup
+        document.addEventListener('DOMContentLoaded', function() {
+            const bgAudio = document.getElementById('bgAudio');
+            const lofiAudio = document.getElementById('lofiAudio');
+            
+            bgAudio.volume = 0.3;
+            lofiAudio.volume = 0.5;
+            
+            function resumeAudio() {
+                if (bgAudio.paused) bgAudio.play().catch(() => {});
+                if (lofiAudio.paused) lofiAudio.play().catch(() => {});
+            }
+            
+            document.addEventListener('click', resumeAudio);
+            document.addEventListener('keydown', resumeAudio);
+            
+            bgAudio.play().catch(() => {});
+            lofiAudio.play().catch(() => {});
+        });
+
+        // Rain effect
+        function createRain() {
+            const rainContainer = document.getElementById('rainContainer');
+            
+            for (let i = 0; i < rainDropsCount; i++) {
+                const raindrop = document.createElement('div');
+                raindrop.classList.add('raindrop');
+                
+                const left = Math.random() * window.innerWidth;
+                const delay = Math.random() * 2;
+                const duration = (Math.random() * 1 + 1) / rainSpeed;
+                const height = Math.random() * 100 + 50;
+                
+                raindrop.style.left = left + 'px';
+                raindrop.style.height = height + 'px';
+                raindrop.style.animationDelay = delay + 's';
+                raindrop.style.animationDuration = duration + 's';
+                
+                rainContainer.appendChild(raindrop);
+            }
+        }
+
+        createRain();
+
+        // Load saved settings
+        document.addEventListener('DOMContentLoaded', function() {
+            const bgColor = localStorage.getItem('backgroundColor') || '#0a0a1f';
+            document.body.style.backgroundColor = bgColor;
+            document.getElementById('backgroundColorPicker').value = bgColor;
+
+            document.getElementById('beforeUnloadToggle').checked = localStorage.getItem('beforeUnloadEnabled') === 'true';
+            document.getElementById('autocloakToggle').checked = localStorage.getItem('autocloakEnabled') === 'true';
+            document.getElementById('adsToggle').checked = localStorage.getItem('adsEnabled') === 'true';
+            
+            document.getElementById('siteTitle').value = localStorage.getItem('siteTitle') || '';
+            document.getElementById('panicKey').value = localStorage.getItem('panicKey') || '';
+            document.getElementById('panicUrl').value = localStorage.getItem('panicUrl') || '';
+
+            // Apply saved favicon
+            const savedLogo = localStorage.getItem('siteLogo');
+            if (savedLogo) {
+                const faviconLink = document.createElement('link');
+                faviconLink.rel = 'icon';
+                faviconLink.href = savedLogo;
+                document.head.appendChild(faviconLink);
+            }
+        });
+
+        // Save appearance
+        document.getElementById('saveAppearance').addEventListener('click', function() {
+            const bgColor = document.getElementById('backgroundColorPicker').value;
+            const siteTitle = document.getElementById('siteTitle').value;
+            const siteLogoFile = document.getElementById('siteLogo').files[0];
+
+            localStorage.setItem('backgroundColor', bgColor);
+            document.body.style.backgroundColor = bgColor;
+
+            if (siteTitle) {
+                localStorage.setItem('siteTitle', siteTitle);
+                document.title = siteTitle;
+            }
+
+            if (siteLogoFile) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const logoUrl = e.target.result;
+                    localStorage.setItem('siteLogo', logoUrl);
+                    
+                    let faviconLink = document.querySelector('link[rel="icon"]');
+                    if (!faviconLink) {
+                        faviconLink = document.createElement('link');
+                        faviconLink.rel = 'icon';
+                        document.head.appendChild(faviconLink);
+                    }
+                    faviconLink.href = logoUrl;
+                };
+                reader.readAsDataURL(siteLogoFile);
+            }
+        });
+
+        // Save panic settings
+        document.getElementById('savePanic').addEventListener('click', function() {
+            const panicKey = document.getElementById('panicKey').value;
+            const panicUrl = document.getElementById('panicUrl').value;
+
+            if (panicKey) localStorage.setItem('panicKey', panicKey);
+            if (panicUrl) localStorage.setItem('panicUrl', panicUrl);
+        });
+
+        // Reset appearance
+        document.getElementById('resetAppearance').addEventListener('click', function() {
+            localStorage.removeItem('backgroundColor');
+            localStorage.removeItem('siteTitle');
+            localStorage.removeItem('siteLogo');
+            
+            document.body.style.backgroundColor = '#0a0a1f';
+            document.title = 'Waterbottle Proxy';
+            
+            const faviconLink = document.querySelector('link[rel="icon"]');
+            if (faviconLink) faviconLink.href = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">🌊</text></svg>';
+        });
+
+        // Reset panic settings
+        document.getElementById('resetPanic').addEventListener('click', function() {
+            localStorage.removeItem('panicKey');
+            localStorage.removeItem('panicUrl');
+            document.getElementById('panicKey').value = '';
+            document.getElementById('panicUrl').value = '';
+        });
+
+        // Toggle handlers
+        document.getElementById('beforeUnloadToggle').addEventListener('change', function() {
+            localStorage.setItem('beforeUnloadEnabled', this.checked);
+            if (this.checked) {
+                window.addEventListener('beforeunload', handleBeforeUnload);
+            } else {
+                window.removeEventListener('beforeunload', handleBeforeUnload);
+            }
+        });
+
+        document.getElementById('autocloakToggle').addEventListener('change', function() {
+            localStorage.setItem('autocloakEnabled', this.checked);
+        });
+
+        document.getElementById('adsToggle').addEventListener('change', function() {
+            localStorage.setItem('adsEnabled', this.checked);
+        });
+
+        function handleBeforeUnload(e) {
+            e.preventDefault();
+            e.returnValue = '';
+        }
+
+        if (localStorage.getItem('beforeUnloadEnabled') === 'true') {
+            window.addEventListener('beforeunload', handleBeforeUnload);
+        }
+
+        // Panic key handler
+        window.addEventListener('keydown', function(e) {
+            const panicKey = localStorage.getItem('panicKey');
+            const panicUrl = localStorage.getItem('panicUrl');
+            
+            if (panicKey && panicUrl && e.key === panicKey) {
+                window.location.href = panicUrl;
+            }
+        });
+    </script>
+</body>
+</html>

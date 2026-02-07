@@ -43,7 +43,8 @@ body{
   backdrop-filter: blur(6px);
   border-bottom:1px solid rgba(255,255,255,0.02);
   font-weight:600;
-  cursor:grab; /* indicate draggable header */
+  /* remove native cursor so custom PNG stays visible over app chrome */
+  cursor: none !important;
   user-select:none;
 }
 .window{
@@ -89,7 +90,7 @@ body{
 }
 
 /* dragging state */
-.window.dragging{transition:none; cursor:grabbing; transform:none}
+.window.dragging{transition:none; cursor:none !important; transform:none}
 
 /* Dock container */
 #dock-wrap{
@@ -135,6 +136,22 @@ body{
   box-shadow: 0 6px 14px rgba(2,6,23,0.4);
 }
 .dock-item img{width:100%;height:100%;object-fit:contain;border-radius:8px}
+
+/* text-based icon for apps without an image (e.g., Waterbottle) */
+.text-icon{
+  width:100%;
+  height:100%;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-weight:700;
+  font-size:20px;
+  color:#06b6d4; /* cyan */
+  background:transparent;
+  border-radius:8px;
+  user-select:none;
+  pointer-events:none;
+}
 
 /* subtle focus ring */
 .dock-item:focus{box-shadow:0 6px 18px rgba(10,132,255,0.22);transform:translateY(-4px)}
@@ -188,7 +205,7 @@ body{
 }
 
 /* ensure drag cursor stays consistent when using the title area */
-.window .title{ cursor:grab; }
+.window .title{ cursor: none !important; }
 
 /* small spacing tweak so title text doesn't overflow into controls */
 .window .title .title-text{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
@@ -204,8 +221,9 @@ body{
   object-fit:contain;
 }
 
-/* ensure traffic buttons don't trigger the header grab cursor visually */
-.traffic-btn { cursor: default; pointer-events:auto; }
+/* ensure traffic buttons don't trigger the header grab cursor visually
+   remove native cursor so custom cursor remains visible over buttons */
+.traffic-btn { cursor: none !important; pointer-events:auto; }
 
 /* When a window is maximized, remove transform-based centering and make it fill the viewport.
    This ensures the green traffic button creates a true fullscreen-like window while still
@@ -234,9 +252,29 @@ body{
 /* custom cursor: hide native cursor and show PNG that follows pointer.
    pointer-events:none so it doesn't block interactions, and very high z-index
    so it's visible above iframes and other elements. */
-html, body, #desktop, iframe {
+/* aggressively hide the native cursor across the document; keep explicit rules
+   for controls outside windows to allow normal platform cursors where needed,
+   while ensuring app windows always use the custom PNG cursor. */
+html, body, #desktop, iframe, html * {
+  cursor: none !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+}
+
+/* Allow native cursor on general page controls (outside app windows) so forms remain usable.
+   This is intentionally generic; the .window-specific rule below will override inside apps. */
+button, input, textarea, select {
+  cursor: auto;
+  -webkit-user-select: text;
+  user-select: text;
+}
+
+/* Reinforce custom-cursor usage for any element inside app windows (overrides generic controls above) */
+.window, .window *, .title, .title *, .traffic-btn {
   cursor: none !important;
 }
+
+/* keep the custom cursor element settings */
 #custom-cursor{
   position: fixed;
   left: 0;

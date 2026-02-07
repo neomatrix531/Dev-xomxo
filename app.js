@@ -103,10 +103,12 @@ dock.addEventListener('keydown', (e)=>{
 items.forEach(it => it.tabIndex = 0);
 
 /* -- Preload icons (local icons folder expected) -- */
-const iconNames = ['helios','penguinmod'];
+const iconNames = ['helios','penguinmod','waterbottle'];
 const faviconMap = {
   helios: 'https://helios-browser.vercel.app/favicon.ico',
-  penguinmod: 'https://penguinmod.com/favicon.ico'
+  penguinmod: 'https://penguinmod.com/favicon.ico',
+  // waterbottle has no external icon; leave blank to avoid network fetch
+  waterbottle: ''
 };
 iconNames.forEach(n=>{
   const img = new Image();
