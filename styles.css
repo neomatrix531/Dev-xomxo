@@ -1,159 +1,340 @@
-:root{
-  --bg:#0f1720;
-  --panel:#0b1220;
-  --accent:#ffb64d;
-  --muted:#9aa4b2;
-  --glass: rgba(255,255,255,0.03);
-  --radius:12px;
-  --touch:48px;
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
-*{box-sizing:border-box}
-html,body,#desktop{height:100%;margin:0;background:
-  linear-gradient(180deg, rgba(15,23,32,0.6), rgba(7,16,26,0.6)),
-  url('/untitled.png') center/cover no-repeat;
-  color:#e6eef6;touch-action:manipulation;
-
-/* Hide native cursor so we can render our custom follower PNG */
-cursor: none;
-}
-#desktop{position:relative;overflow:hidden}
-
-/* Dock */
-#dock{
-  position: absolute;
-  left:12px;
-  bottom:12px;
-  display:flex;
-  gap:12px;
-  align-items:center;
-  padding:8px;
-  background:var(--glass);
-  border-radius:16px;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-.app-icon{
-  background:transparent;
-  border:0;
-  padding:8px;
-  display:flex;
-  gap:8px;
-  align-items:center;
-  color:var(--muted);
-  border-radius:12px;
-  transition:transform .12s ease, background .12s ease;
-  min-width:var(--touch);
-  min-height:var(--touch);
-  /* Ensure the native cursor is hidden when over app icons so only the custom PNG follower is visible */
-  cursor: none !important;
-  /* allow normal touch/pointer gestures on app icons so clicks/taps register reliably */
-  touch-action: auto;
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #1a1a1a;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: 100px;
 }
 
-
-.app-icon:active{transform:translateY(2px)}
-.app-icon:hover{background:rgba(255,255,255,0.02)}
-.icon-sun{width:32px;height:32px;flex-shrink:0}
-.icon-label{display:none;font-size:12px;color:var(--muted)}
-
-/* Window */
-.window {
-  position:absolute;
-  width:92%;
-  height:76%;
-  left:4%;
-  top:8%;
-  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0.1));
-  border-radius:14px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  overflow:hidden;
-  display:flex;
-  flex-direction:column;
-  touch-action: none;
-  border:1px solid rgba(255,255,255,0.03);
+.proxy-container {
+  width: 90%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
-/* Titlebar */
-.titlebar{
-  height:46px;
-  display:flex;
-  align-items:center;
-  padding:0 10px;
-  gap:8px;
-  background:linear-gradient(180deg, rgba(255,255,255,0.01), rgba(0,0,0,0.04));
-  user-select:none;
-  -webkit-user-select:none;
-  flex-shrink:0;
-  /* ensure titlebar accepts pointer/touch gestures normally */
-  touch-action: auto;
-}
-.controls{
-  display:flex;
-  gap:8px;
-  align-items:center;
-}
-.ctrl{
-  /* small visible dot */
-  width:12px;
-  height:12px;
-  border-radius:50%;
-  /* larger touch area for reliability on touch devices */
-  padding:8px;
-  display:inline-flex;
-  align-items:center;
-  justify-content:center;
-  /* keep native cursor hidden over controls so only the custom PNG is visible */
-  cursor: none !important;
-  touch-action:manipulation;
-}
-.ctrl.close{background:#ff5c5c}
-.ctrl.min{background:#ffbf57}
-.ctrl.max{background:#2cd777}
-.title{
-  flex:1;
-  text-align:center;
-  font-size:13px;
-  color:var(--muted);
+.logo {
+  color: #fff;
+  font-size: 2.5rem;
+  text-align: center;
+  margin-bottom: 20px;
+  font-weight: bold;
+  background: var(--button-gradient, linear-gradient(45deg, #ff0000, #4ecdc4));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
-/* Content */
-.content{
-  flex:1;
-  background:#06090c;
-  position:relative;
+.search-bar {
+  width: 100%;
+  display: flex;
+  gap: 10px;
 }
-.content iframe{
-  width:100%;
-  height:100%;
-  border:0;
-  display:block;
-  background:white;
-  /* Force the native cursor off over iframe elements so our custom follower remains visible */
-  cursor: none !important;
-  /* keep iframe behind the floating follower */
+
+.search-engine-select {
+  padding: 12px;
+  font-size: 16px;
+  border: none;
+  border-radius: 25px 0 0 25px;
+  background: #2a2a2a;
+  color: #fff;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  cursor: pointer;
+}
+
+.search-engine-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #4ecdc4;
+}
+
+.search-input {
+  flex: 1;
+  padding: 12px 20px;
+  font-size: 16px;
+  border: none;
+  border-radius: 0 25px 25px 0;
+  background: #2a2a2a;
+  color: #fff;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  transition: all 0.3s ease;
+}
+
+.search-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px #4ecdc4;
+  transform: scale(1.02);
+}
+
+.search-button {
+  padding: 12px 25px;
+  border: none;
+  border-radius: 25px;
+  background: linear-gradient(45deg, #ff0000, #4ecdc4);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 60px;
+}
+
+.search-button:hover {
+  transform: scale(1.05);
+}
+
+.search-button:active {
+  transform: scale(0.95);
+}
+
+#proxy-frame {
+  display: none;
+  width: 100%;
+  height: 90vh;
+  border: none;
+  background: white;
+  border-radius: 10px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+  transition: all 0.3s ease;
+}
+
+#proxy-frame:hover {
+  box-shadow: 0 6px 25px rgba(0,0,0,0.4);
+}
+
+.home-button, .settings-button, .ext-hanger-button {
+  position: fixed;
+  top: 20px;
+  padding: 10px 20px;
+  border: none;
+  border-radius: 25px;
+  background: linear-gradient(45deg, #ff0000, #4ecdc4);
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  z-index: 1000;
+  transition: transform 0.2s;
+}
+
+.home-button {
+  left: 20px;
+}
+
+.settings-button {
+  left: 120px;
+}
+
+.ext-hanger-button {
+  left: 220px;
+}
+
+.home-button:hover, .settings-button:hover, .ext-hanger-button:hover {
+  transform: scale(1.05);
+}
+
+.settings-container {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #2a2a2a;
+  padding: 30px;
+  border-radius: 15px;
+  width: 90%;
+  max-width: 500px;
+  z-index: 2000;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+}
+
+.settings-title {
+  color: white;
+  font-size: 24px;
+  margin-bottom: 20px;
+  text-align: center;
+}
+
+.settings-option {
+  margin-bottom: 20px;
+}
+
+.settings-label {
+  display: block;
+  color: white;
+  margin-bottom: 10px;
+}
+
+.settings-select, .color-picker {
+  width: 100%;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  background: #3a3a3a;
+  color: white;
+  margin-bottom: 10px;
+}
+
+.settings-button-group {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+.settings-save, .settings-cancel {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.settings-save {
+  background: linear-gradient(45deg, #ff0000, #4ecdc4);
+  color: white;
+}
+
+.settings-cancel {
+  background: #3a3a3a;
+  color: white;
+}
+
+.creator-text {
+  color: #888;
+  font-size: 0.9rem;
+  text-align: center;
+  margin-top: 10px;
+  font-style: italic;
+}
+
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.proxy-error {
+  color: #ff0000;
+  background: rgba(255, 0, 0, 0.1);
+  padding: 15px;
+  border-radius: 10px;
+  margin-top: 20px;
+  text-align: center;
+  animation: fadeIn 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.starfield {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   z-index: 0;
+  pointer-events: none;
 }
 
-/* System bar */
-#sysbar{
-  position:absolute;
-  right:12px;
-  bottom:12px;
-  color:var(--muted);
-  font-size:13px;
-  padding:8px 12px;
-  border-radius:12px;
-  background:var(--glass);
-  backdrop-filter: blur(6px);
+.star {
+  display: none;
 }
 
-/* responsive touch-friendly */
-@media (max-width:640px){
-  .window{width:96%;height:88%;left:2%;top:5%;border-radius:10px}
-  .titlebar{height:52px;padding:0 12px}
-  .icon-label{display:none}
-  .app-icon{min-width:44px;min-height:44px;padding:6px}
-  .title{font-size:15px}
+.background-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  z-index: -1;
+  overflow: hidden;
+}
+
+.background-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.15;
+}
+
+.ext-hanger-container {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 90%;
+  max-width: 600px;
+  z-index: 1000;
+}
+
+.ext-hanger-box {
+  background: #2a2a2a;
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+  color: white;
+  text-align: center;
+}
+
+.ext-hanger-box h2 {
+  margin-bottom: 20px;
+  font-size: 24px;
+  background: var(--button-gradient, linear-gradient(45deg, #ff0000, #4ecdc4));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.code-box {
+  background: #1a1a1a;
+  padding: 20px;
+  border-radius: 10px;
+  margin: 20px 0;
+  text-align: left;
+  overflow-x: auto;
+}
+
+.code-box code {
+  font-family: monospace;
+  color: #4ecdc4;
+}
+
+.copy-button {
+  padding: 12px 25px;
+  border: none;
+  border-radius: 25px;
+  background: var(--button-gradient, linear-gradient(45deg, #ff0000, #4ecdc4));
+  color: white;
+  font-weight: bold;
+  cursor: pointer;
+  transition: transform 0.2s;
+  margin-top: 20px;
+}
+
+.copy-button:hover {
+  transform: scale(1.05);
+}
+
+.copy-button:active {
+  transform: scale(0.95);
+}
+
+.games-button,
+.games-container,
+.game-button {
+  display: none;
 }

@@ -1,80 +1,73 @@
-<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Web OS Dock</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Elproxy - Web Proxy</title>
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <div id="desktop">
-    <div id="windows">
-      <div class="window hidden" data-app="helios">
-        <div class="title">
-          <div class="traffic">
-            <button class="traffic-btn red" aria-label="Close"></button>
-            <button class="traffic-btn yellow" aria-label="Minimize"></button>
-            <button class="traffic-btn green" aria-label="Maximize"></button>
-          </div>
-          <img class="title-icon" src="https://helios-browser.vercel.app/favicon.ico" alt="Helios icon" />
-          <span class="title-text">Helios Browser</span>
-        </div>
-        <div class="content">
-          <iframe class="app-frame" src="https://dev-xomxo.vercel.app/Helios-Offline.html" title="Helios Browser" sandbox="allow-scripts allow-forms allow-same-origin allow-popups"></iframe>
-        </div>
-      </div>
-
-      <div class="window hidden" data-app="penguinmod">
-        <div class="title">
-          <div class="traffic">
-            <button class="traffic-btn red" aria-label="Close"></button>
-            <button class="traffic-btn yellow" aria-label="Minimize"></button>
-            <button class="traffic-btn green" aria-label="Maximize"></button>
-          </div>
-          <img class="title-icon" src="https://penguinmod.com/favicon.ico" alt="PenguinMod icon" />
-          <span class="title-text">PenguinMod</span>
-        </div>
-        <div class="content">
-          <iframe class="app-frame" src="https://penguinmod.com" title="PenguinMod" sandbox="allow-scripts allow-forms allow-same-origin allow-popups"></iframe>
-        </div>
-      </div>
-
-      <!-- Waterbottle Proxy app (embeds local index (1).html) -->
-      <div class="window hidden" data-app="waterbottle">
-        <div class="title">
-          <div class="traffic">
-            <button class="traffic-btn red" aria-label="Close"></button>
-            <button class="traffic-btn yellow" aria-label="Minimize"></button>
-            <button class="traffic-btn green" aria-label="Maximize"></button>
-          </div>
-          <!-- text icon used instead of image -->
-          <span class="title-text">Waterbottle Proxy</span>
-        </div>
-        <div class="content">
-          <iframe class="app-frame" src="/index (1).html" title="Waterbottle Proxy" sandbox="allow-scripts allow-forms allow-same-origin allow-popups"></iframe>
-        </div>
-      </div>
+  <button id="home-button" class="home-button">Home</button>
+  <button id="settings-button" class="settings-button">Settings</button>
+  <button id="ext-hanger-button" class="ext-hanger-button">ExtHanger</button>
+  <div class="proxy-container">
+    <h1 class="logo">Elproxy</h1>
+    <form class="search-bar search-form">
+      <select id="search-engine" class="search-engine-select">
+        <option value="google">Google</option>
+        <option value="duckduckgo">DuckDuckGo</option>
+        <option value="bing">Bing</option>
+        <option value="yahoo">Yahoo</option>
+      </select>
+      <input 
+        type="text" 
+        class="search-input" 
+        placeholder="Enter URL to proxy..."
+        autocomplete="off"
+        autofocus
+      >
+      <button type="submit" class="search-button">Go</button>
+    </form>
+    <div class="creator-text">Made by GlitchForge</div>
+  </div>
+  <div class="settings-container">
+    <h2 class="settings-title">Settings</h2>
+    
+    <div class="settings-option">
+      <label class="settings-label" for="tab-cloak">Tab Cloak</label>
+      <select id="tab-cloak" class="settings-select">
+        <option value="none">No Cloak</option>
+        <option value="classroom">Google Classroom</option>
+        <option value="docs">Google Docs</option>
+        <option value="blank">about:blank</option>
+      </select>
     </div>
 
-    <div id="dock-wrap">
-      <div id="dock">
-        <button class="dock-item" data-app="helios" aria-label="Helios Browser">
-          <img src="https://helios-browser.vercel.app/favicon.ico" alt="Helios">
-        </button>
-        <button class="dock-item" data-app="penguinmod" aria-label="PenguinMod">
-          <img src="https://penguinmod.com/favicon.ico" alt="PenguinMod">
-        </button>
-        <!-- Waterbottle dock icon: text-based "W" cyan -->
-        <button class="dock-item" data-app="waterbottle" aria-label="Waterbottle Proxy">
-          <div class="text-icon" aria-hidden="true">W</div>
-        </button>
-      </div>
+    <div class="settings-option">
+      <label class="settings-label" for="blank-open">Open in about:blank</label>
+      <button id="blank-open" class="settings-select">Open Current Page in about:blank</button>
+    </div>
+
+    <div class="settings-option">
+      <label class="settings-label" for="bg-color">Background Color</label>
+      <input type="color" id="bg-color" class="color-picker" value="#1a1a1a">
+    </div>
+
+    <div class="settings-option">
+      <label class="settings-label" for="button-color">Button Color</label>
+      <input type="color" id="button-color" class="color-picker" value="#ff0000">
+    </div>
+
+    <div class="settings-button-group">
+      <button id="settings-save" class="settings-save">Save</button>
+      <button id="settings-cancel" class="settings-cancel">Cancel</button>
     </div>
   </div>
-
-  <!-- custom cursor overlays everything (positioned via JS) -->
-  <img id="custom-cursor" src="cursor.png" alt="" aria-hidden="true" />
-
-  <script type="module" src="app.js"></script>
+  <iframe 
+    id="proxy-frame" 
+    sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
+  ></iframe>
+  <script src="background.js"></script>
+  <script src="starfield.js"></script>
+  <script src="main.js"></script>
 </body>
 </html>
