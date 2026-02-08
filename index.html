@@ -1,73 +1,93 @@
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>xworkspace</title>
-  <link rel="stylesheet" href="styles.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <style>
+:root{
+  --bg:#f7f8fa;
+  --card:#ffffff;
+  --muted:#666;
+  --accent:#0b7285;
+}
+
+html,body{
+  height:100%;
+  margin:0;
+  background:var(--bg);
+  font-family:Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+}
+
+#app{
+  height:100vh; /* fit one screen */
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  padding:12px;
+  box-sizing:border-box;
+}
+
+#label{
+  margin:0;
+  padding:10px 12px;
+  background:var(--card);
+  border-radius:10px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.06);
+  font-weight:600;
+  color:var(--accent);
+  text-align:center;
+  font-size:16px;
+  line-height:1;
+  min-height:44px; /* touch-friendly */
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+#frame-wrap{
+  flex:1 1 auto;
+  background:linear-gradient(180deg, rgba(0,0,0,0.03), rgba(0,0,0,0.02));
+  border-radius:10px;
+  overflow:hidden;
+  box-shadow:0 6px 18px rgba(11,114,133,0.06);
+}
+
+#iframe-fallback{
+  display:none;
+  width:100%;
+  height:100%;
+  align-items:center;
+  justify-content:center;
+  color:var(--muted);
+  font-size:14px;
+  padding:20px;
+  box-sizing:border-box;
+  text-align:center;
+}
+
+iframe{
+  width:100%;
+  height:100%;
+  border:0;
+  display:block;
+  background:white;
+}
+  </style>
 </head>
 <body>
-  <button id="home-button" class="home-button">home</button>
-  <button id="settings-button" class="settings-button">settings</button>
-  <button id="ext-hanger-button" class="ext-hanger-button">save and load</button>
-  <div class="proxy-container">
-    <h1 class="logo">XRFreedom</h1>
-    <form class="search-bar search-form">
-      <select id="search-engine" class="search-engine-select">
-        <option value="google">Google</option>
-        <option value="duckduckgo">DuckDuckGo</option>
-        <option value="bing">Bing</option>
-        <option value="yahoo">Yahoo</option>
-      </select>
-      <input 
-        type="text" 
-        class="search-input" 
-        placeholder="Enter URL..."
-        autocomplete="off"
-        autofocus
-      >
-      <button type="submit" class="search-button">Go</button>
-    </form>
-    <div class="creator-text">Made by NEO</div>
-  </div>
-  <div class="settings-container">
-    <h2 class="settings-title">Settings</h2>
-    
-    <div class="settings-option">
-      <label class="settings-label" for="tab-cloak">Tab Cloak</label>
-      <select id="tab-cloak" class="settings-select">
-        <option value="none">No Cloak</option>
-        <option value="classroom">Google Slides</option>
-        <option value="docs">Canvas</option>
-        <option value="blank">about:blank</option>
-      </select>
-    </div>
-
-    <div class="settings-option">
-      <label class="settings-label" for="blank-open">Open in about:blank</label>
-      <button id="blank-open" class="settings-select">Open Current Page in about:blank</button>
-    </div>
-
-    <div class="settings-option">
-      <label class="settings-label" for="bg-color">Background Color</label>
-      <input type="color" id="bg-color" class="color-picker" value="#1a1a1a">
-    </div>
-
-    <div class="settings-option">
-      <label class="settings-label" for="button-color">Button Color</label>
-      <input type="color" id="button-color" class="color-picker" value="#ff0000">
-    </div>
-
-    <div class="settings-button-group">
-      <button id="settings-save" class="settings-save">Save</button>
-      <button id="settings-cancel" class="settings-cancel">Cancel</button>
+  <div id="app">
+    <p id="label">Cloud PC</p>
+    <div id="frame-wrap">
+      <iframe id="embedded" src="https://handwrought-baggily-davin.ngrok-free.dev/" frameborder="0" allowfullscreen></iframe>
     </div>
   </div>
-  <iframe 
-    id="proxy-frame" 
-    sandbox="allow-same-origin allow-scripts allow-forms allow-popups"
-  ></iframe>
-  <script src="background.js"></script>
-  <script src="starfield.js"></script>
-  <script src="main.js"></script>
+  <script>
+/* Removed fallback/block-detection logic per request — always show the iframe. */
+document.addEventListener('DOMContentLoaded', () => {
+  // No blocking/fallback handling: the iframe remains visible as-is.
+});
+  </script>
 </body>
 </html>
